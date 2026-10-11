@@ -1,0 +1,12 @@
+[package]
+name = "bitbid-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "bitbid"
+path = "src/main.rs"
+
+[dependencies]
+bitbid-core = { path = "../bitbid-core" }
+bitbid-adapters = { path = "../bitbid-adapters" }

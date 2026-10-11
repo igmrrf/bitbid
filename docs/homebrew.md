@@ -26,16 +26,18 @@ homebrew-tap/
 
 ---
 
-## 🛠 Step 2: Generate Release Archive SHA-256
+## 🛠 Step 2: Prepare Binary and Generate Archive SHA-256
 
-When a new version tag (e.g., `v0.1.0`) is published on GitHub, calculate the SHA-256 hash of the release source archive:
+When a new version is ready, build the optimized release binary, compress it into a TAR archive, and calculate its SHA-256 hash:
 
 ```bash
-curl -sL https://github.com/igmrrf/bsec/archive/refs/tags/v0.1.0.tar.gz | shasum -a 256
+cargo build --release
+cd target/release
+tar -czf bsec-mac.tar.gz bsec
+shasum -a 256 bsec-mac.tar.gz
 ```
 
-Example Output:
-`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+Upload the `bsec-mac.tar.gz` archive to your GitHub Releases as an asset.
 
 ---
 
@@ -47,14 +49,13 @@ Create `Formula/bsec.rb` in your `homebrew-tap` repository:
 class Bsec < Formula
   desc "Secure CLI tool to manage and encrypt environment variables"
   homepage "https://github.com/igmrrf/bsec"
-  url "https://github.com/igmrrf/bsec/archive/refs/tags/v0.1.0.tar.gz"
+  url "https://github.com/igmrrf/bsec/releases/download/v0.1.0/bsec-mac.tar.gz"
   sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  version "0.1.0"
   license "MIT"
 
-  depends_on "rust" => :build
-
   def install
-    system "cargo", "install", *std_cargo_args
+    bin.install "bsec"
   end
 
   test do
@@ -85,7 +86,7 @@ jobs:
         with:
           formula-name: bsec
           homebrew-tap: igmrrf/homebrew-tap
-          download-url: https://github.com/igmrrf/bsec/archive/refs/tags/${{ github.ref_name }}.tar.gz
+          download-url: https://github.com/igmrrf/bsec/releases/download/${{ github.ref_name }}/bsec-mac.tar.gz
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 ```

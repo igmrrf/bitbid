@@ -36,3 +36,4 @@ Product Requirements Document (Rust Version)
 - **Encryption**: AES-256-GCM, Base64
 - **Serialization**: `serde`, `serde_json`, `serde_yaml`
 - **File System / Config**: `confy`, `tempfile`
+- **Link feature**: link existing account to new system
