@@ -1,0 +1,25 @@
+# Local build/runtime outputs
+/target/
+/dist/
+/build/
+/node_modules/
+/.local/
+/.cache/
+/coverage/
+.DS_Store
+*.log
+# Credentials and local wallet state
+.env
+.env.*
+!.env.example
+!.env.schema
+!.env.template
+*.pass
+*.pem
+*.key
+/secrets/
+/credentials/
+.bsec/
+.bitbid/
+wallet.json
+env_vars.json
