@@ -7,3 +7,13 @@
 .bsec/
 wallet.json
 env_vars.json
+
+# Local build/runtime state and credential files
+.local/
+.cache/
+.DS_Store
+*.key
+*.pass
+/secrets/
+/credentials/
+*.pem

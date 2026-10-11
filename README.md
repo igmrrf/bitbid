@@ -49,6 +49,23 @@ Read this before relying on `bsec` for sensitive data.
 
 ---
 
+## Shared browser/CLI tokens
+
+The browser console and native CLI now compile the same `bitbid-core` library.
+Offline `seal` writes a versioned share string to stdout; `unseal` accepts that
+string or an IPFS payload JSON and writes the original bytes to stdout:
+
+```bash
+bsec seal --to <recipient-SEC1-public-key-hex> --input message.txt
+bsec unseal --input token.txt --key-file recipient-private-key.txt
+```
+
+Input defaults to stdin. Private keys are read from a file, never an inline flag.
+These commands use no wallet/backend and do not register a token or record an
+on-chain read. Existing `share`/`view` retain their registry/IPFS lifecycle.
+See [implemented shared protocol](docs/split-core/implemented-shared-protocol.md)
+for exact serialization, legacy compatibility and the deferred full split.
+
 ## Installation
 
 ```bash

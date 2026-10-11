@@ -3,15 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::secrets::{BundleMember, IpfsPayload, SecretKind};
 
-/// Output format for `materialize` / `view --file`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OutputFormat {
-    Env,
-    Pem,
-    Json,
-    Cred,
-    Schema,
-}
+pub use bitbid_core::protocol::OutputFormat;
 
 /// Reject anything that is not a safe plain basename. Sender-supplied filenames are
 /// attacker-influenced, so any path separator, traversal token, home expansion, absolute
@@ -55,17 +47,6 @@ pub fn decode_body(content: &str, encoding: &str) -> Result<Vec<u8>> {
             .decode(content)
             .map_err(|e| anyhow!("invalid base64 member body: {}", e)),
         other => Err(anyhow!("unknown content encoding {:?}", other)),
-    }
-}
-
-impl SecretKind {
-    fn as_format(self) -> OutputFormat {
-        match self {
-            SecretKind::Env => OutputFormat::Env,
-            SecretKind::Pem => OutputFormat::Pem,
-            SecretKind::Json => OutputFormat::Json,
-            SecretKind::Cred => OutputFormat::Cred,
-        }
     }
 }
 

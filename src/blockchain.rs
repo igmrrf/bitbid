@@ -69,21 +69,7 @@ pub fn bytes_to_checksum_address(bytes: &[u8; 20]) -> String {
 /// Anything longer is rejected rather than silently truncated — silent truncation let
 /// distinct IDs collide on the same on-chain bytes32 key.
 pub fn encode_bytes32_hex(id_str: &str) -> Result<[u8; 32]> {
-    let mut bytes = [0u8; 32];
-    if id_str.starts_with("0x") {
-        let b = crate::wallet::hex_to_bytes(id_str)?;
-        if b.len() > 32 {
-            return Err(anyhow!("secret ID {:?} decodes to {} bytes; max 32", id_str, b.len()));
-        }
-        bytes[..b.len()].copy_from_slice(&b);
-        return Ok(bytes);
-    }
-    let raw = id_str.as_bytes();
-    if raw.len() > 32 {
-        return Err(anyhow!("secret ID {:?} is {} bytes; max 32", id_str, raw.len()));
-    }
-    bytes[..raw.len()].copy_from_slice(raw);
-    Ok(bytes)
+    bitbid_core::registry::encode_bytes32(id_str).map_err(Into::into)
 }
 
 fn registry_address(conf: &NetworkConfig) -> Result<[u8; 20]> {

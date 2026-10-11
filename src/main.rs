@@ -11,6 +11,7 @@ mod helpers;
 mod ipfs;
 mod materialize;
 mod network_config;
+mod offline;
 mod project_config;
 mod secrets;
 mod wallet;
@@ -29,6 +30,24 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Seal an offline token compatible with the browser console (no wallet/backends)
+    Seal {
+        /// Recipient SEC1 secp256k1 public key, in hex
+        #[arg(long)]
+        to: String,
+        /// Plaintext input file, or '-' for stdin
+        #[arg(long, default_value = "-")]
+        input: PathBuf,
+    },
+    /// Open an offline token or IPFS JSON to stdout (no recorded on-chain read)
+    Unseal {
+        /// Token or payload JSON file, or '-' for stdin
+        #[arg(long, default_value = "-")]
+        input: PathBuf,
+        /// File containing recipient private key hex; never pass the key inline
+        #[arg(long)]
+        key_file: PathBuf,
+    },
     /// Initialize a new wallet or import an existing one
     Init {
         /// Optional User ID or machine identifier
@@ -481,6 +500,16 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
+        Some(Commands::Seal { input, to }) => {
+            if let Err(e) = offline::seal(&input, &to) {
+                handle_cli_error("Seal failed", e);
+            }
+        }
+        Some(Commands::Unseal { input, key_file }) => {
+            if let Err(e) = offline::unseal(&input, &key_file) {
+                handle_cli_error("Unseal failed", e);
+            }
+        }
         Some(Commands::Init {
             user_id,
             import_mnemonic,

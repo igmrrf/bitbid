@@ -5,6 +5,14 @@ This document records the ruling from the wayfinder topology spec (#8): how the
 as a Cargo virtual workspace, and how native-vs-wasm gating is enforced. It is a
 planning prototype; the real split is not performed here.
 
+## Implementation status (2026-10-11)
+
+The first bounded shared protocol/crypto extraction is now implemented in
+`crates/bitbid-core`. The CLI package remains at the root and the actual Yew
+browser console uses WASM through a sibling path dependency. This document's
+full virtual-workspace and Leptos SSR topology remains a future proposal.
+See [implemented shared protocol](implemented-shared-protocol.md).
+
 ## Target crates and names
 
 | Crate | Kind | Package name | Import name |

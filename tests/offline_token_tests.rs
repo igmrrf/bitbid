@@ -1,0 +1,86 @@
+use assert_cmd::prelude::*;
+use std::io::Write;
+use std::process::{Command, Stdio};
+fn vector() -> serde_json::Value {
+    serde_json::from_str(include_str!(
+        "../crates/bitbid-core/tests/vectors/ipfs-v1.json"
+    ))
+    .unwrap()
+}
+#[test]
+fn cli_opens_shared_frozen_token_without_wallet_or_network() {
+    let v = vector();
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let key = tmp.path().join("synthetic-key.txt");
+    std::fs::write(&key, v["recipient_secret_hex"].as_str().unwrap()).unwrap();
+    for input in ["token", "canonical_payload"] {
+        let token = tmp.path().join("input.txt");
+        std::fs::write(&token, v[input].as_str().unwrap()).unwrap();
+        let output = Command::cargo_bin("bsec")
+            .unwrap()
+            .current_dir(tmp.path())
+            .env("BSEC_HOME", tmp.path().join("unused-wallet"))
+            .args(["unseal", "--input"])
+            .arg(&token)
+            .arg("--key-file")
+            .arg(&key)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(output.stdout, v["plaintext"].as_str().unwrap().as_bytes());
+        assert!(!tmp.path().join("unused-wallet").exists());
+    }
+}
+#[test]
+fn cli_emits_random_shared_tokens_from_stdin_and_rejects_wrong_key() {
+    let v = vector();
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let mut tokens = vec![];
+    for _ in 0..2 {
+        let mut child = Command::cargo_bin("bsec")
+            .unwrap()
+            .current_dir(tmp.path())
+            .args(["seal", "--to", v["recipient_public_hex"].as_str().unwrap()])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(b"CLI/browser interoperability")
+            .unwrap();
+        let out = child.wait_with_output().unwrap();
+        assert!(out.status.success());
+        let share = String::from_utf8(out.stdout).unwrap();
+        let key = bitbid_core::address::hex_to_bytes(v["recipient_secret_hex"].as_str().unwrap())
+            .unwrap();
+        assert_eq!(
+            bitbid_core::token::unseal_to_string(&share, &key).unwrap(),
+            "CLI/browser interoperability"
+        );
+        tokens.push(share);
+    }
+    assert_ne!(tokens[0], tokens[1]);
+    let input = tmp.path().join("token.txt");
+    std::fs::write(&input, &tokens[0]).unwrap();
+    let key = tmp.path().join("wrong-key.txt");
+    std::fs::write(&key, format!("{}03", "00".repeat(31))).unwrap();
+    let output = Command::cargo_bin("bsec")
+        .unwrap()
+        .current_dir(tmp.path())
+        .arg("unseal")
+        .arg("--input")
+        .arg(input)
+        .arg("--key-file")
+        .arg(key)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+}

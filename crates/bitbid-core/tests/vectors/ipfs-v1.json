@@ -1,0 +1,14 @@
+{
+  "note": "Synthetic public test material only; generated independently with Node/OpenSSL.",
+  "plaintext": "bitbid native + wasm 🔒",
+  "recipient_secret_hex": "0000000000000000000000000000000000000000000000000000000000000002",
+  "recipient_public_hex": "04c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee51ae168fea63dc339a3c58419466ceaeef7f632653266d0e1236431a950cfe52a",
+  "ephemeral_secret_hex": "0000000000000000000000000000000000000000000000000000000000000001",
+  "content_key_hex": "4242424242424242424242424242424242424242424242424242424242424242",
+  "wrap_nonce_hex": "010101010101010101010101",
+  "payload_nonce_hex": "020202020202020202020202",
+  "canonical_payload": "{\"protocol_version\":1,\"content\":\"AgICAgICAgICAgIC:kIxyYLWYd+3M3vpHr8aY37h/YqirWfJFlelK3CzxY70rqfO+z7yzPLU=\",\"content_key\":\"AQEBAQEBAQEBAQEB:CZtzhBFypmJOsILtI2rVDROwUV9Uw1EER3ITwJprY5KIXHTE2stcRTnhk6UACUQRJtxfi/iJ2LnMV5uB\",\"ephemeral_pubkey\":\"0x0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8\"}",
+  "token": "bitbid2:eyJwcm90b2NvbF92ZXJzaW9uIjoxLCJjb250ZW50IjoiQWdJQ0FnSUNBZ0lDQWdJQzprSXh5WUxXWWQrM00zdnBIcjhhWTM3aC9ZcWlyV2ZKRmxlbEszQ3p4WTcwcnFmTyt6N3l6UExVPSIsImNvbnRlbnRfa2V5IjoiQVFFQkFRRUJBUUVCQVFFQjpDWnR6aEJGeXBtSk9zSUx0STJyVkRST3dVVjlVdzFFRVIzSVR3SnByWTVLSVhIVEUyc3RjUlRuaGs2VUFDVVFSSnR4ZmkvaUoyTG5NVjV1QiIsImVwaGVtZXJhbF9wdWJrZXkiOiIweDA0NzliZTY2N2VmOWRjYmJhYzU1YTA2Mjk1Y2U4NzBiMDcwMjliZmNkYjJkY2UyOGQ5NTlmMjgxNWIxNmY4MTc5ODQ4M2FkYTc3MjZhM2M0NjU1ZGE0ZmJmYzBlMTEwOGE4ZmQxN2I0NDhhNjg1NTQxOTljNDdkMDhmZmIxMGQ0YjgifQ==",
+  "secret_id": "0xabababababababababababababababababababababababababababababababab",
+  "registry_key_hex": "abababababababababababababababababababababababababababababababab"
+}

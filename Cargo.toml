@@ -12,6 +12,7 @@ categories = ["command-line-utilities", "virtualization"]
 edition = "2024"
 
 [dependencies]
+bitbid-core = { path = "crates/bitbid-core" }
 clap = { version = "4.5.31", features = ["derive"] }
 log = "0.4.26"
 anyhow = "1.0.97"
@@ -55,3 +56,8 @@ strip = true
 
 
 
+
+[workspace]
+resolver = "2"
+members = [".", "crates/bitbid-core"]
+exclude = ["prototype/split-core-skeleton"]
