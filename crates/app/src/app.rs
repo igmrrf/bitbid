@@ -39,7 +39,6 @@ pub struct App {
 
     seal_plaintext: String,
     seal_recipient_key: String,
-    seal_recipient_id: String,
     seal_share: String,
     seal_status: Status,
 
@@ -66,7 +65,6 @@ pub enum Msg {
 
     SealPlaintext(String),
     SealRecipientKey(String),
-    SealRecipientId(String),
     SealRun,
 
     UnsealShare(String),
@@ -96,7 +94,6 @@ impl Component for App {
             wallet_status: Status::Idle,
             seal_plaintext: String::new(),
             seal_recipient_key: String::new(),
-            seal_recipient_id: String::new(),
             seal_share: String::new(),
             seal_status: Status::Idle,
             unseal_share: String::new(),
@@ -146,15 +143,10 @@ impl Component for App {
                 self.seal_recipient_key = v;
                 true
             }
-            Msg::SealRecipientId(v) => {
-                self.seal_recipient_id = v;
-                true
-            }
             Msg::SealRun => {
                 match seal::seal_to_share_string(
                     self.seal_plaintext.as_bytes(),
                     self.seal_recipient_key.trim(),
-                    self.seal_recipient_id.trim(),
                 ) {
                     Ok(share) => {
                         self.seal_share = share;
@@ -347,19 +339,17 @@ impl App {
     fn seal_panel(&self, ctx: &Context<Self>) -> Html {
         let on_plain = ctx.link().callback(|e: InputEvent| Msg::SealPlaintext(input_value(&e)));
         let on_key = ctx.link().callback(|e: InputEvent| Msg::SealRecipientKey(input_value(&e)));
-        let on_id = ctx.link().callback(|e: InputEvent| Msg::SealRecipientId(input_value(&e)));
         let body = html! {
             <>
                 <p class="lede">
                     { "Seal runs entirely in your browser: ECDH on secp256k1 derives a key-wrap via \
                        HKDF-SHA256, and the payload is encrypted with AES-256-GCM. Give a recipient \
-                       public key (SEC1, 0x04…). The output is one versioned base64 share string." }
+                       public key (SEC1, 0x04…). The share string also opens in the CLI." }
                 </p>
                 <div class="grid2">
                     { Self::area("plaintext", "seal-plain", &self.seal_plaintext, on_plain, 5) }
                     <div>
                         { Self::field("recipient public key (SEC1)", "seal-key", &self.seal_recipient_key, on_key, true) }
-                        { Self::field("recipient id (optional)", "seal-id", &self.seal_recipient_id, on_id, true) }
                         <div class="controls">
                             <button class="btn btn--crank" onclick={ctx.link().callback(|_| Msg::SealRun)}>
                                 <span class="btn__key"></span>{ "seal" }
@@ -383,7 +373,7 @@ impl App {
         let body = html! {
             <>
                 <p class="lede">
-                    { "Paste a share string and the recipient private key (hex). Unseal derives the \
+                    { "Paste a share string or an IPFS payload JSON and the recipient private key (hex). Unseal derives the \
                        same ECDH shared secret and decrypts locally. A wrong key or a tampered payload \
                        fails the AEAD check and yields no plaintext." }
                 </p>

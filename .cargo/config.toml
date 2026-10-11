@@ -1,8 +1,2 @@
-# The console is built for wasm32-unknown-unknown. On this machine the `cargo`
-# on PATH is the Homebrew toolchain, which ships only the host std; the rustup
-# 1.98.1 toolchain has the wasm target installed. Route cargo's rustc/rustdoc
-# through the rustup shims (which honour `rust-toolchain.toml`, pinned to 1.98.1)
-# so the documented wasm build works without changing the global PATH.
-[build]
-rustc = "/opt/homebrew/opt/rustup/bin/rustc"
-rustdoc = "/opt/homebrew/opt/rustup/bin/rustdoc"
+# Use rustup-managed cargo so rust-toolchain.toml selects Rust 1.98.1 + WASM.
+# No machine-specific compiler paths are required.

@@ -7,19 +7,4 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-aes-gcm = "0.10.3"
-base64 = "0.22"
-hkdf = "0.12"
-k256 = { version = "0.13.4", features = ["ecdh", "arithmetic"] }
-sha2 = "0.10"
-sha3 = "0.10"
-getrandom = "0.2"
-serde = { workspace = true }
-serde_json = { workspace = true }
-thiserror = { workspace = true }
-
-# getrandom needs an entropy source compiled in for wasm32-unknown-unknown. The
-# browser exposes crypto.getRandomValues, so enable the `js` backend only on wasm.
-# On the host target getrandom uses the OS RNG and the default features apply.
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+bitbid-core = { path = "../../../bitsec/crates/bitbid-core" }
