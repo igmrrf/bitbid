@@ -9,8 +9,9 @@ Use rustup-managed Cargo; `rust-toolchain.toml` pins Rust 1.98.1 and the WASM
 standard library target. The Cargo config has no workstation-specific paths.
 
 ```sh
-cargo test -p bitbid-webapp-core
-cargo build --locked --target wasm32-unknown-unknown -p bitbid-webapp
+cargo test --locked -p bitbid-webapp-core
+cargo build --locked --release --target wasm32-unknown-unknown -p bitbid-webapp
+trunk build --release --locked --dist ../.local/dist/webapp
 trunk serve --address 127.0.0.1
 ```
 
@@ -26,3 +27,13 @@ panels do not submit transactions. Offline unseal does not record a chain read.
 
 See [shared protocol and architecture](../bitsec/docs/split-core/implemented-shared-protocol.md)
 for the format, compatibility vectors, chain linkage and deferred SSR plan.
+
+`bitbid-webapp-core` remains a thin compatibility facade: `address` and
+`registry` reexport the shared modules, `seal` reexports the shared token API,
+and `protocol` exposes the shared payload schema and canonical encoding. Existing
+`RegistryRecord`, `DecodeError`, and `TokenError` imports keep their shared type
+identity. The facade contains no separate crypto or ABI implementation. Its
+external-consumer tests cover type identity, native/browser token exchange,
+legacy readers, and invalid input. See the
+[facade contract](../bitsec/docs/split-core/web-core-consolidation.md) and
+[verification ownership](../bitsec/docs/split-core/verification-strategy.md).

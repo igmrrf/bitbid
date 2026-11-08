@@ -3,5 +3,7 @@
 pub mod address;
 pub mod registry;
 pub mod seal;
+/// Canonical payload schema and wire encoding, shared with the native CLI.
+pub use bitbid_core::protocol;
 pub use registry::{DecodeError, RegistryRecord};
 pub use seal::TokenError;
