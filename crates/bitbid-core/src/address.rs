@@ -31,7 +31,7 @@ pub fn hex_to_bytes(s: &str) -> Result<Vec<u8>, String> {
         .strip_prefix("0x")
         .or_else(|| t.strip_prefix("0X"))
         .unwrap_or(t);
-    if t.len() % 2 != 0 {
+    if !t.len().is_multiple_of(2) {
         return Err(format!("hex string has odd length: {}", t.len()));
     }
     let mut out = Vec::with_capacity(t.len() / 2);

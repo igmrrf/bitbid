@@ -25,7 +25,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # The project enforces clippy (zero warnings), not rustfmt formatting.
       - name: clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
   test:
     name: test suite
@@ -35,7 +35,34 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: cargo test
-        run: cargo test --all-features
+        run: cargo test --locked --workspace --all-features
+
+  wasm-core:
+    name: shared core on WASM (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: Swatinem/rust-cache@v2
+      - name: Enforce shared-core dependency boundary
+        run: python3 scripts/check-core-boundary.py
+      - name: Build shared core for WASM
+        run: cargo build --locked -p bitbid-core --target wasm32-unknown-unknown
+      # The runner and library must have exactly the same bindgen schema version.
+      # Derive it from the lockfile so dependency upgrades cannot leave a stale runner.
+      - name: Install matching WASM test runner
+        run: |
+          VERSION=$(python3 -c 'import tomllib; lock = tomllib.load(open("Cargo.lock", "rb")); versions = {p["version"] for p in lock["package"] if p["name"] == "wasm-bindgen"}; assert len(versions) == 1, versions; print(versions.pop())')
+          cargo install wasm-bindgen-cli --version "$VERSION" --locked
+      - name: Execute shared-core WASM tests
+        env:
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
+        run: cargo test --locked -p bitbid-core --target wasm32-unknown-unknown
 
   e2e:
     name: e2e on-chain flows
@@ -108,7 +135,7 @@ jobs:
       - name: install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: measure coverage
-        run: cargo llvm-cov --all-features --lcov --output-path lcov.info --summary-only
+        run: cargo llvm-cov --locked --workspace --all-features --lcov --output-path lcov.info --summary-only
       - name: upload lcov artifact
         uses: actions/upload-artifact@v4
         with:

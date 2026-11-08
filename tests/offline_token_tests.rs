@@ -13,9 +13,19 @@ fn cli_opens_shared_frozen_token_without_wallet_or_network() {
     let tmp = assert_fs::TempDir::new().unwrap();
     let key = tmp.path().join("synthetic-key.txt");
     std::fs::write(&key, v["recipient_secret_hex"].as_str().unwrap()).unwrap();
-    for input in ["token", "canonical_payload"] {
+    let mut legacy_json: serde_json::Value =
+        serde_json::from_str(v["canonical_payload"].as_str().unwrap()).unwrap();
+    legacy_json
+        .as_object_mut()
+        .unwrap()
+        .remove("protocol_version");
+    for input in [
+        v["token"].as_str().unwrap().to_owned(),
+        v["canonical_payload"].as_str().unwrap().to_owned(),
+        legacy_json.to_string(),
+    ] {
         let token = tmp.path().join("input.txt");
-        std::fs::write(&token, v[input].as_str().unwrap()).unwrap();
+        std::fs::write(&token, input).unwrap();
         let output = Command::cargo_bin("bsec")
             .unwrap()
             .current_dir(tmp.path())
@@ -83,4 +93,57 @@ fn cli_emits_random_shared_tokens_from_stdin_and_rejects_wrong_key() {
         .unwrap();
     assert!(!output.status.success());
     assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn cli_rejects_malformed_tokens_and_keys_without_stdout_or_wallet() {
+    let v = vector();
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let token_path = tmp.path().join("token.txt");
+    let key_path = tmp.path().join("key.txt");
+    let wallet = tmp.path().join("unused-wallet");
+    let unknown_version = v["canonical_payload"]
+        .as_str()
+        .unwrap()
+        .replace("\"protocol_version\":1", "\"protocol_version\":2");
+    for (input, key) in [
+        ("bitbid2:%%%", v["recipient_secret_hex"].as_str().unwrap()),
+        (
+            unknown_version.as_str(),
+            v["recipient_secret_hex"].as_str().unwrap(),
+        ),
+        ("bitbid1:Ag==", v["recipient_secret_hex"].as_str().unwrap()),
+        (v["token"].as_str().unwrap(), "not-hex"),
+        (v["token"].as_str().unwrap(), "00"),
+        (v["token"].as_str().unwrap(), &"00".repeat(32)),
+    ] {
+        std::fs::write(&token_path, input).unwrap();
+        std::fs::write(&key_path, key).unwrap();
+        let output = Command::cargo_bin("bsec")
+            .unwrap()
+            .current_dir(tmp.path())
+            .env("BSEC_HOME", &wallet)
+            .args(["unseal", "--input"])
+            .arg(&token_path)
+            .arg("--key-file")
+            .arg(&key_path)
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "accepted {input} / {key}");
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+        assert!(!wallet.exists());
+    }
+    let output = Command::cargo_bin("bsec")
+        .unwrap()
+        .current_dir(tmp.path())
+        .env("BSEC_HOME", &wallet)
+        .args(["seal", "--to", "invalid-public-key"])
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(!output.stderr.is_empty());
+    assert!(!wallet.exists());
 }

@@ -91,10 +91,10 @@ pub fn encode_bytes32(id: &str) -> Result<[u8; 32], DecodeError> {
 
 fn rpc_result(body: &str) -> Result<Value, DecodeError> {
     let v: Value = serde_json::from_str(body).map_err(|e| DecodeError::Json(e.to_string()))?;
-    if let Some(err) = v.get("error") {
-        if !err.is_null() {
-            return Err(DecodeError::Rpc(err.to_string()));
-        }
+    if let Some(err) = v.get("error")
+        && !err.is_null()
+    {
+        return Err(DecodeError::Rpc(err.to_string()));
     }
     v.get("result").cloned().ok_or(DecodeError::NoResult)
 }
@@ -342,7 +342,7 @@ mod tests {
         push_word(&mut buf, &word_u128(cid.len() as u128));
         buf.extend_from_slice(cid.as_bytes());
         let pad = (32 - (cid.len() % 32)) % 32;
-        buf.extend(std::iter::repeat(0u8).take(pad));
+        buf.extend(std::iter::repeat_n(0u8, pad));
         buf
     }
 
@@ -386,7 +386,7 @@ mod tests {
         push_word(&mut data, &word_u128(0));
         push_word(&mut data, &word_u128(cid.len() as u128));
         data.extend_from_slice(cid.as_bytes());
-        data.extend(std::iter::repeat(0u8).take((32 - (cid.len() % 32)) % 32));
+        data.extend(std::iter::repeat_n(0u8, (32 - (cid.len() % 32)) % 32));
 
         let log = serde_json::json!({
             "address": "0x00000000000000000000000000000000000000cc",
