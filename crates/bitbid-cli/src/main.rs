@@ -481,18 +481,7 @@ fn handle_cli_error(prefix: &str, err: anyhow::Error) -> ! {
         std::process::exit(bsec_err.exit_code());
     }
 
-    let msg = err.to_string().to_lowercase();
-    let code = if msg.contains("password") || msg.contains("corrupted") {
-        2
-    } else if msg.contains("not found") || msg.contains("expired") || msg.contains("permission") {
-        3
-    } else if msg.contains("io") || msg.contains("parse") || msg.contains("config") || msg.contains("file") {
-        4
-    } else if msg.contains("mnemonic") || msg.contains("recipient") {
-        5
-    } else {
-        1
-    };
+    let code = errors::fallback_exit_code(&err.to_string());
     std::process::exit(code);
 }
 

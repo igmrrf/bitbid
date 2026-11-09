@@ -3,7 +3,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 fn vector() -> serde_json::Value {
     serde_json::from_str(include_str!(
-        "../crates/bitbid-core/tests/vectors/ipfs-v1.json"
+        "../../bitbid-core/tests/vectors/ipfs-v1.json"
     ))
     .unwrap()
 }
@@ -91,7 +91,7 @@ fn cli_emits_random_shared_tokens_from_stdin_and_rejects_wrong_key() {
         .arg(key)
         .output()
         .unwrap();
-    assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(4));
     assert!(output.stdout.is_empty());
 }
 
@@ -106,16 +106,25 @@ fn cli_rejects_malformed_tokens_and_keys_without_stdout_or_wallet() {
         .as_str()
         .unwrap()
         .replace("\"protocol_version\":1", "\"protocol_version\":2");
-    for (input, key) in [
-        ("bitbid2:%%%", v["recipient_secret_hex"].as_str().unwrap()),
+    for (input, key, expected_code) in [
+        (
+            "bitbid2:%%%",
+            v["recipient_secret_hex"].as_str().unwrap(),
+            1,
+        ),
         (
             unknown_version.as_str(),
             v["recipient_secret_hex"].as_str().unwrap(),
+            4,
         ),
-        ("bitbid1:Ag==", v["recipient_secret_hex"].as_str().unwrap()),
-        (v["token"].as_str().unwrap(), "not-hex"),
-        (v["token"].as_str().unwrap(), "00"),
-        (v["token"].as_str().unwrap(), &"00".repeat(32)),
+        (
+            "bitbid1:Ag==",
+            v["recipient_secret_hex"].as_str().unwrap(),
+            4,
+        ),
+        (v["token"].as_str().unwrap(), "not-hex", 4),
+        (v["token"].as_str().unwrap(), "00", 1),
+        (v["token"].as_str().unwrap(), &"00".repeat(32), 1),
     ] {
         std::fs::write(&token_path, input).unwrap();
         std::fs::write(&key_path, key).unwrap();
@@ -127,9 +136,10 @@ fn cli_rejects_malformed_tokens_and_keys_without_stdout_or_wallet() {
             .arg(&token_path)
             .arg("--key-file")
             .arg(&key_path)
+            .stdin(Stdio::null())
             .output()
             .unwrap();
-        assert!(!output.status.success(), "accepted {input} / {key}");
+        assert_eq!(output.status.code(), Some(expected_code), "{input} / {key}");
         assert!(output.stdout.is_empty());
         assert!(!output.stderr.is_empty());
         assert!(!wallet.exists());
@@ -142,7 +152,7 @@ fn cli_rejects_malformed_tokens_and_keys_without_stdout_or_wallet() {
         .stdin(Stdio::null())
         .output()
         .unwrap();
-    assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
     assert!(!output.stderr.is_empty());
     assert!(!wallet.exists());

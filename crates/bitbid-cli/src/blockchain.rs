@@ -13,6 +13,8 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 
+mod list_read;
+
 use crate::eth;
 use crate::network_config::{load_network_config, NetworkConfig};
 
@@ -229,11 +231,38 @@ pub fn list_secrets_on_chain(
     expired_only: bool,
     active_only: bool,
 ) -> Result<Vec<(String, OnChainSecretInfo)>> {
+    list_secrets_with(
+        user_address, filter_user, all, expired_only, active_only, get_secret_info_on_chain,
+    )
+}
+
+/// Selected CLI list read through the shared core and native Rpc boundary.
+/// The old listing entry point remains for hide and its legacy read/write flow.
+pub(crate) fn list_registry_secrets(
+    user_address: &str,
+    filter_user: Option<&str>,
+    all: bool,
+    expired_only: bool,
+    active_only: bool,
+) -> Result<Vec<(String, OnChainSecretInfo)>> {
+    list_secrets_with(
+        user_address, filter_user, all, expired_only, active_only, list_read::read,
+    )
+}
+
+fn list_secrets_with(
+    user_address: &str,
+    filter_user: Option<&str>,
+    all: bool,
+    expired_only: bool,
+    active_only: bool,
+    mut read: impl FnMut(&str) -> Result<OnChainSecretInfo>,
+) -> Result<Vec<(String, OnChainSecretInfo)>> {
     let index = load_index();
     let mut results = Vec::new();
 
     for (sec_id, entry) in index.iter() {
-        let rec = match get_secret_info_on_chain(sec_id) {
+        let rec = match read(sec_id) {
             Ok(r) => r,
             Err(e) => {
                 log::warn!("Skipping secret '{}' in listing (chain read failed): {}", sec_id, e);

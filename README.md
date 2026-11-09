@@ -70,7 +70,10 @@ for exact serialization, legacy compatibility and the deferred full split.
 
 ```bash
 # Build from source
-cargo build --release
+cargo build --locked --release -p bitbid-cli --bin bsec
+
+# Install the bitbid-cli package locally; the executable stays bsec
+cargo install --locked --path crates/bitbid-cli
 
 # Run binary
 ./target/release/bsec --help
@@ -82,7 +85,7 @@ cargo build --release
 
 For platform-specific installation and deployment flows, see the [Documentation Index](docs/README.md):
 
-* 📦 **Cargo (crates.io)**: [`docs/cargo.md`](docs/cargo.md)
+* 📦 **Cargo (local source installation)**: [`docs/cargo.md`](docs/cargo.md)
 * 🍺 **Homebrew**: [`docs/homebrew.md`](docs/homebrew.md)
 * 🖥️ **GitHub Binary Releases**: [`docs/binary_releases.md`](docs/binary_releases.md)
 * 🐳 **Docker & GHCR**: [`docs/docker.md`](docs/docker.md)

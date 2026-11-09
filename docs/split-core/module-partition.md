@@ -1,5 +1,20 @@
 # Module partition — core vs adapters
 
+The [2026-11-08 rollout decision](migration-rollout.md) limits the next production
+checkpoints to additive errors, synchronous ports with one headless registry
+read, one native list-read adapter, and mechanical topology. The full module
+partition and SSR shell below remain future planning.
+
+Checkpoint P now exposes the five synchronous public traits and cloneable `Host`
+in `bitbid-core::ports` (also re-exported at the root). The additive
+`registry_read::read_registry_info` consumes only RPC and retains all eleven
+chain tuple fields. Its deterministic external consumer suite exercises native
+and WASM interfaces. Checkpoint A now supplies native `bitbid-adapters::rpc::BlockingRpc`
+and routes only `secrets::list_secrets` through that operation. The CLI still owns
+wallet/config/index access, filters, formatting and Host composition. Hide, view,
+materialize and transactions retain their legacy paths; other native ports remain
+unimplemented. See [native RPC verification](verification-strategy.md#native-rpc-and-selected-list-read).
+
 This document records the ruling from the wayfinder partition spec: how each of
 the 14 modules in `bitsec/src/*.rs` is assigned to a pure `core` crate, a native
 `adapters` crate, or split between the two. It is a planning prototype; the real

@@ -1,5 +1,11 @@
 # Workspace topology and feature flags
 
+The [2026-11-08 rollout decision](migration-rollout.md#exact-topology-checkpoint-t)
+governs production moves: preserve the shipped core path and Yew CSR facade,
+introduce the native adapter before the virtual workspace, then use package
+`bitbid-cli` with binary `bsec`. The `bitbid` binary and Leptos assumptions below
+remain historical plans for separate work.
+
 This document records the ruling from the wayfinder topology spec (#8): how the
 `core`/`adapters` split for the `bsec` CLI (to be renamed `bitbid`) is laid out
 as a Cargo virtual workspace, and how native-vs-wasm gating is enforced. It is a

@@ -283,7 +283,9 @@ pub fn list_secrets(
     expired_only: bool,
     active_only: bool,
 ) -> Result<Vec<SecretRecord>> {
-    let onchain_list = list_secrets_on_chain(user_address, filter_user, all, expired_only, active_only)?;
+    let onchain_list = crate::blockchain::list_registry_secrets(
+        user_address, filter_user, all, expired_only, active_only,
+    )?;
     let mut results = Vec::new();
 
     for (sec_id, info) in onchain_list {

@@ -22,14 +22,15 @@ def runtime_dependencies(package):
     return {dep["name"] for dep in package["dependencies"] if dep["kind"] is None}
 
 
-# Adapter-only dependencies are owned by bsec. Keep also an explicit guard for
+# Native dependencies are owned by the CLI and adapters. Keep an explicit guard for
 # common native adapters, including ones not yet present in the CLI manifest.
 forbidden = (
-    runtime_dependencies(packages["bsec"])
+    (runtime_dependencies(packages["bitbid-cli"])
+     | runtime_dependencies(packages["bitbid-adapters"]))
     - runtime_dependencies(packages["bitbid-core"])
-    - {"bitbid-core"}
+    - {"bitbid-core", "bitbid-adapters"}
 ) | {
-    "bsec", "reqwest", "tokio", "dirs", "dirs-sys", "rpassword", "rtoolbox",
+    "bitbid-cli", "bitbid-adapters", "reqwest", "tokio", "dirs", "dirs-sys", "rpassword", "rtoolbox",
     "clap", "clap_builder", "clap_complete", "tempfile", "libc", "argon2",
     "bip32", "bip39", "yaml_serde", "alloy-provider",
 }

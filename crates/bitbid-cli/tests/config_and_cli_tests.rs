@@ -208,3 +208,83 @@ fn test_command_failure_exit_code_1() -> Result<(), Box<dyn std::error::Error>> 
 
     Ok(())
 }
+
+/// Exercise typed-error priority and clap before any fallback or network work.
+#[test]
+fn cli_preserves_wallet_usage_and_mnemonic_failure_contracts() {
+    use std::process::Stdio;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let home = tmp.path().join("wallet");
+    let run = |args: &[&str]| {
+        Command::cargo_bin("bsec")
+            .unwrap()
+            .current_dir(tmp.path())
+            .env("BSEC_HOME", &home)
+            .args(args)
+            .stdin(Stdio::null())
+            .output()
+            .unwrap()
+    };
+    let missing = run(&["list", "--json"]);
+    assert_eq!(missing.status.code(), Some(1));
+    assert!(missing.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8(missing.stderr).unwrap(),
+        "Error loading wallet: Wallet not found. Please run 'bsec init' first.\n"
+    );
+    assert!(!home.join("wallet.json").exists());
+    let usage = run(&["--unknown"]);
+    assert_eq!(usage.status.code(), Some(2));
+    assert!(usage.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&usage.stderr).contains("unexpected argument '--unknown'"));
+
+    let mnemonic = tmp.path().join("mnemonic");
+    std::fs::write(&mnemonic, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about").unwrap();
+    let initialized = run(&[
+        "init",
+        "--password",
+        "synthetic-password",
+        "--import-mnemonic",
+        mnemonic.to_str().unwrap(),
+    ]);
+    assert!(
+        initialized.status.success(),
+        "{}",
+        String::from_utf8_lossy(&initialized.stderr)
+    );
+    let wallet_bytes = std::fs::read(home.join("wallet.json")).unwrap();
+    let wrong = run(&["wallet", "info", "--password", "wrong"]);
+    assert_eq!(wrong.status.code(), Some(2));
+    assert!(wrong.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8(wrong.stderr).unwrap(),
+        "Warning: Passing passwords via CLI flags may expose credentials in process lists.\nError getting wallet info: Invalid password or wallet data corrupted.\n"
+    );
+    assert_eq!(
+        std::fs::read(home.join("wallet.json")).unwrap(),
+        wallet_bytes
+    );
+
+    std::fs::write(&mnemonic, "bad mnemonic").unwrap();
+    let invalid = run(&[
+        "init",
+        "--overwrite",
+        "--no-encryption",
+        "--import-mnemonic",
+        mnemonic.to_str().unwrap(),
+    ]);
+    assert_eq!(invalid.status.code(), Some(5));
+    // Init prints its banner before validating a mnemonic; preserve those bytes.
+    assert_eq!(
+        String::from_utf8(invalid.stdout).unwrap(),
+        "╔═══════════════════════════════════════╗\n║                                       ║\n║                 BSEC                  ║\n║  Blockchain-based Secret Management   ║\n║                                       ║\n╚═══════════════════════════════════════╝\n"
+    );
+    assert_eq!(
+        String::from_utf8(invalid.stderr).unwrap(),
+        "Error initializing wallet: Invalid BIP-39 mnemonic phrase: mnemonic has an invalid word count: 2. Word count must be 12, 15, 18, 21, or 24\n"
+    );
+    assert_eq!(
+        std::fs::read(home.join("wallet.json")).unwrap(),
+        wallet_bytes
+    );
+}

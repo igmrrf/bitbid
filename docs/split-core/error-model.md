@@ -1,5 +1,19 @@
 # Core error model and its CLI/web projections
 
+The [2026-11-08 rollout decision](migration-rollout.md#additive-error-interface-frozen-for-e)
+governs the next production implementation: preserve legacy concrete errors and
+CLI exits, add classifications/conversions, use constant payload-free public
+messages, and retain Yew CSR. The enum/projection/redaction examples below are
+historical planning; their proposed CLI reclassifications and SSR work are not
+part of that implementation.
+
+Checkpoint E is implemented locally under [#17](https://github.com/igmrrf/clienv/issues/17):
+`bitbid_core::error` and its root exports add the frozen types, owned conversions,
+classifications and fixed payload-free public messages. Legacy concrete APIs,
+facade identity and CLI rendering/exits remain intact. Native/WASM public consumer
+tests and CLI characterization cover these boundaries. Synchronous ports and
+host/client wiring remain subsequent checkpoints.
+
 Planning prototype for wayfinder #11. Records the decision: **`bitbid-core` owns
 one typed error enum** built with `thiserror`, unifying the per-port errors. No
 `anyhow` in core. Core never depends on `clap` or `leptos`; projections are

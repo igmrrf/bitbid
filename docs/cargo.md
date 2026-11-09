@@ -1,105 +1,28 @@
-# Cargo (crates.io) Deployment Guide
+# Cargo source installation
 
-This guide details how to publish `bsec` to [crates.io](https://crates.io), allowing users to install the CLI directly using `cargo install bsec`.
+The native root is a virtual workspace containing `bitbid-core`, native
+`bitbid-adapters` and package `bitbid-cli` (version 0.1.0). The executable remains
+`bsec`; no `bitbid` alias is installed. Run these commands from the native root:
 
----
-
-## 📋 Prerequisites
-
-1. An active account on [crates.io](https://crates.io).
-2. API Token generated under **Account Settings -> API Tokens** on crates.io.
-3. Verified email address on crates.io.
-
----
-
-## 🛠 Step-by-Step Publishing Flow
-
-### Step 1: Login to Crates.io via Cargo
-
-Run the login command and paste your crates.io API token:
-
-```bash
-cargo login <YOUR_CRATES_IO_API_TOKEN>
+```sh
+cargo build --locked --release -p bitbid-cli --bin bsec
+./target/release/bsec --help
+cargo package --locked --list -p bitbid-cli --allow-dirty
+cargo install --locked --path crates/bitbid-cli
+bsec --help
+bsec completion bash
 ```
 
----
+For an isolated install, add `--root /path/to/install` and run
+`/path/to/install/bin/bsec --help`. Local path installation builds the CLI with
+its sibling core and adapters using the native root lockfile. Package metadata
+and the explicit `bsec` binary live in `crates/bitbid-cli/Cargo.toml`;
+`../../README.md` resolves to the native root README. Source and integration
+tests live under `crates/bitbid-cli/{src,tests}`; contracts and scripts stay at
+the repository root.
 
-### Step 2: Validate Manifest & Workspace
-
-Ensure [`Cargo.toml`](file:///Users/igmrrf/Desktop/tmp/bsec/Cargo.toml) contains all required fields:
-
-```toml
-[package]
-name = "bsec"
-version = "0.1.0"
-authors = ["The Lazy <francis.igbiriki@gmail.com>"]
-license = "MIT OR Apache-2.0"
-description = "A secure CLI tool to manage and encrypt environment variables"
-readme = "README.md"
-homepage = "https://bsec.dev"
-repository = "https://github.com/igmrrf/bsec"
-keywords = ["cli", "env", "manage", "track", "encrypt"]
-categories = ["command-line-utilities", "security"]
-edition = "2024"
-```
-
----
-
-### Step 3: Dry-Run Packaging & Check
-
-Perform a publish dry-run to verify that all included files package cleanly without warnings or errors:
-
-```bash
-cargo publish --dry-run
-```
-
-Verify included files list:
-```bash
-cargo package --list
-```
-
----
-
-### Step 4: Publish to Crates.io
-
-Publish the crate to crates.io:
-
-```bash
-cargo publish
-```
-
----
-
-## 🔄 Automated CI/CD Publishing (GitHub Actions)
-
-Add `.github/workflows/publish-cargo.yml`:
-
-```yaml
-name: Publish to Crates.io
-
-on:
-  release:
-    types: [published]
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Cargo Publish
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish
-```
-
----
-
-## 🧪 Installation Verification
-
-Once published, users can install `bsec` globally:
-
-```bash
-cargo install bsec
-bsec --version
-```
+This is a local delivery boundary. Core and adapters are unpublished path
+dependencies without registry versions, so listing package contents does not
+establish a standalone crates.io archive can resolve them. Registry publication,
+release automation and any package/binary rename require a separate decision.
+No publishing credentials or deployment settings are needed for these commands.

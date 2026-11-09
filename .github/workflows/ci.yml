@@ -121,7 +121,7 @@ jobs:
           BSEC_E2E_RPC: "http://localhost:8545"
           BSEC_E2E_IPFS_GATEWAY: "http://localhost:8080/ipfs/"
           BSEC_E2E_FUNDER: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-        run: cargo test --test materialize_tests --test secrets_tests -- --test-threads=1
+        run: cargo test --locked -p bitbid-cli --test materialize_tests --test secrets_tests -- --test-threads=1
 
   coverage:
     name: coverage (llvm-cov)

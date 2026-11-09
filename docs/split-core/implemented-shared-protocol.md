@@ -95,7 +95,7 @@ were already installed; no global toolchain was installed or changed.
 ```sh
 cd bitsec
 cargo test -p bitbid-core
-cargo test --test offline_token_tests
+cargo test --locked -p bitbid-cli --test offline_token_tests
 CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
   cargo test -p bitbid-core --target wasm32-unknown-unknown
 cd ../webapp

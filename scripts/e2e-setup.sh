@@ -13,7 +13,7 @@
 #
 # Usage:
 #   ./scripts/e2e-setup.sh
-#   BSEC_HOME=~/.bsec BSEC_E2E=1 cargo test    # run gated integration flows against this stack
+#   BSEC_HOME=~/.bsec BSEC_E2E=1 cargo test --locked -p bitbid-cli    # run gated integration flows against this stack
 set -euo pipefail
 
 RPC_URL="http://localhost:8545"
@@ -28,7 +28,7 @@ rpc() { # rpc <json-body>
 }
 
 echo "==> Building bsec release binary"
-cargo build --release --quiet
+cargo build --locked --release -p bitbid-cli --bin bsec --quiet
 
 echo "==> Starting anvil + IPFS"
 docker compose up -d

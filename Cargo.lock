@@ -236,6 +236,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
+name = "bitbid-adapters"
+version = "0.1.0"
+dependencies = [
+ "bitbid-core",
+ "reqwest",
+ "serde_json",
+]
+
+[[package]]
+name = "bitbid-cli"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "argon2",
+ "assert_cmd",
+ "assert_fs",
+ "base64",
+ "bip32",
+ "bip39",
+ "bitbid-adapters",
+ "bitbid-core",
+ "clap",
+ "clap_complete",
+ "dirs",
+ "hkdf",
+ "k256",
+ "lazy_static",
+ "libc",
+ "log",
+ "predicates",
+ "proptest",
+ "rand 0.8.7",
+ "reqwest",
+ "rpassword",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sha3",
+ "tempfile",
+ "thiserror",
+ "yaml_serde",
+ "zeroize",
+]
+
+[[package]]
 name = "bitbid-core"
 version = "0.1.0"
 dependencies = [
@@ -293,42 +339,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf88ba1141d185c399bee5288d850d63b8369520c1eafc32a0430b5b6c287bf4"
 dependencies = [
  "sha2",
-]
-
-[[package]]
-name = "bsec"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "argon2",
- "assert_cmd",
- "assert_fs",
- "base64",
- "bip32",
- "bip39",
- "bitbid-core",
- "clap",
- "clap_complete",
- "dirs",
- "hkdf",
- "k256",
- "lazy_static",
- "libc",
- "log",
- "predicates",
- "proptest",
- "rand 0.8.7",
- "reqwest",
- "rpassword",
- "serde",
- "serde_json",
- "sha2",
- "sha3",
- "tempfile",
- "thiserror",
- "yaml_serde",
- "zeroize",
 ]
 
 [[package]]

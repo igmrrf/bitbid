@@ -112,7 +112,7 @@ wallet or backend.
 cargo test --locked -p bitbid-core
 CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
   cargo test --locked -p bitbid-core --target wasm32-unknown-unknown
-cargo test --locked --test offline_token_tests
+cargo test --locked -p bitbid-cli --test offline_token_tests
 ```
 
 Match the WASM runner to the lockfile's wasm-bindgen version. See
