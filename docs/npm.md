@@ -45,7 +45,7 @@ npm-package/
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/igmrrf/clienv.git"
+    "url": "git+https://github.com/igmrrf/bitbid.git"
   },
   "keywords": [
     "cli",

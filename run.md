@@ -30,8 +30,8 @@ This guide details how to run the `bitbid` CLI application in both **Local File 
 
 ```bash
 # Clone repository
-git clone https://github.com/igmrrf/clienv.git
-cd clienv
+git clone https://github.com/igmrrf/bitbid.git
+cd bitbid
 
 # Build release binary
 cargo build --locked --release -p bitbid-cli --bin bitbid

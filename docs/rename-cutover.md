@@ -3,7 +3,7 @@
 The package remains `bitbid-cli` 0.1.0. Its only executable, CLI help, banner,
 completion registrations and current examples use `bitbid`. Build/install from
 the checked-out source using [Cargo](cargo.md); the canonical source repository
-is https://github.com/igmrrf/clienv. No canonical homepage or published npm,
+is https://github.com/igmrrf/bitbid. No canonical homepage or published npm,
 Homebrew, container, OS package or downloadable binary is established here.
 Those guides are prospective templates requiring separate release work.
 

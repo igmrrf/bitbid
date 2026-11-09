@@ -67,8 +67,8 @@ Chocolatey packages are built as `.nupkg` archives and pushed to [chocolatey.org
     <version>0.1.0</version>
     <title>bitbid CLI</title>
     <authors>Francis Igbiriki</authors>
-    <projectUrl>https://github.com/igmrrf/clienv</projectUrl>
-    <licenseUrl>https://github.com/igmrrf/clienv/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/igmrrf/bitbid</projectUrl>
+    <licenseUrl>https://github.com/igmrrf/bitbid/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Secure CLI tool to manage and encrypt environment variables</description>
     <summary>bitbid CLI env management tool</summary>
@@ -101,7 +101,7 @@ Create a GitHub repo named `scoop-bucket` containing `bucket/bitbid.json`:
 {
     "version": "0.1.0",
     "description": "Secure CLI tool to manage and encrypt environment variables",
-    "homepage": "https://github.com/igmrrf/clienv",
+    "homepage": "https://github.com/igmrrf/bitbid",
     "license": "MIT",
     "architecture": {
         "64bit": {

@@ -43,12 +43,12 @@ assets = [
 cargo deb
 ```
 
-Generated artifact path: `target/debian/bsec_0.1.0_amd64.deb`
+Generated artifact path: `target/debian/bitbid_0.1.0_amd64.deb`
 
 ### Step 4: Installation Test
 
 ```bash
-sudo dpkg -i target/debian/bsec_0.1.0_amd64.deb
+sudo dpkg -i target/debian/bitbid_0.1.0_amd64.deb
 ```
 
 ---
@@ -89,7 +89,7 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="Secure CLI tool to manage and encrypt environment variables"
 arch=('x86_64' 'aarch64')
-url="https://github.com/igmrrf/clienv"
+url="https://github.com/igmrrf/bitbid"
 license=('MIT' 'Apache-2.0')
 depends=('gcc-libs')
 makedepends=('cargo')

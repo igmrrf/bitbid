@@ -2,7 +2,7 @@
 
 **Status: agreed 2026-11-09. The user chose “go with recommendation for all 4 questions”.**
 
-Decision: [Lock the next core and adapters extraction execution contract](https://github.com/igmrrf/clienv/issues/26), claimed by `igmrrf` on 2026-11-09. This is the only decision being worked this session. [Source inventory](extraction-inventory.md) contains factual traces and a reproduced baseline defect; [candidate tickets](extraction-candidates.md) are drafts without tracker identities. All four recommendations received an explicit live answer; no other decision is resolved by that answer.
+Decision: [Lock the next core and adapters extraction execution contract](https://github.com/igmrrf/bitbid/issues/26), claimed by `igmrrf` on 2026-11-09. This is the only decision being worked this session. [Source inventory](extraction-inventory.md) contains factual traces and a reproduced baseline defect; [candidate tickets](extraction-candidates.md) are drafts without tracker identities. All four recommendations received an explicit live answer; no other decision is resolved by that answer.
 
 ## Baseline and delivery boundary
 
@@ -85,7 +85,7 @@ Share/view/record-read/hide/materialize lifecycle orchestration remains included
 
 ## Separate roadmap decisions and resolution procedure
 
-[Rebase the SSR execution decision on the shipped Yew and shared core](https://github.com/igmrrf/clienv/issues/27) remains open/unclaimed, natively blocked only by its closed SSR research/secret-handling prerequisites. Its conditional implementation waits for a different HITL session; CSR compatibility is required. [Choose publication channels and the release verification contract](https://github.com/igmrrf/clienv/issues/28) stays open/unclaimed and unblocked. Channel selection precedes preparation; external publication additionally needs action-specific authorization. Native channels need not depend on SSR unless selected.
+[Rebase the SSR execution decision on the shipped Yew and shared core](https://github.com/igmrrf/bitbid/issues/27) remains open/unclaimed, natively blocked only by its closed SSR research/secret-handling prerequisites. Its conditional implementation waits for a different HITL session; CSR compatibility is required. [Choose publication channels and the release verification contract](https://github.com/igmrrf/bitbid/issues/28) stays open/unclaimed and unblocked. Channel selection precedes preparation; external publication additionally needs action-specific authorization. Native channels need not depend on SSR unless selected.
 
 The explicit answer confirms shared understanding of Q1–Q4. Record one resolution comment, close this decision, append its gist/link to the map, and create precise normal implementation issues from the candidates. Create before wiring native blocking relationships; never treat local N-labels or candidate letters as GitHub identities. Preserve all other claims and historical open/completed states. Only actual unblocked implementation tickets are ready; historical open/completed issues are not repeated.
 

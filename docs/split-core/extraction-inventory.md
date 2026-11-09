@@ -1,6 +1,6 @@
 # Next extraction — source inventory
 
-Status: factual inventory for [Lock the next core and adapters extraction execution contract](https://github.com/igmrrf/clienv/issues/26), the agreed implementation contract is in [extraction-execution.md](extraction-execution.md). Captured 2026-11-09. Recommendations were explicitly approved in the live exchange; historical proposal wording below records the inventory provenance. Native HEAD `ec659bacef56555bbbbd65a9b22521b6e56dcff1`; web HEAD `149e8d48415e85b68d859abd6727181f94ee4e9e`.
+Status: factual inventory for [Lock the next core and adapters extraction execution contract](https://github.com/igmrrf/bitbid/issues/26), the agreed implementation contract is in [extraction-execution.md](extraction-execution.md). Captured 2026-11-09. Recommendations were explicitly approved in the live exchange; historical proposal wording below records the inventory provenance. Native HEAD `ec659bacef56555bbbbd65a9b22521b6e56dcff1`; web HEAD `149e8d48415e85b68d859abd6727181f94ee4e9e`.
 
 ## Compatibility and path ownership
 

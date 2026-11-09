@@ -3,7 +3,7 @@ name = "bitbid-adapters"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "Native host adapters for BitSec's shared core"
+description = "Native host adapters for Bitbid's shared core"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 bitbid-core = { path = "../bitbid-core" }

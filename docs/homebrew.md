@@ -5,26 +5,26 @@
 
 # Homebrew Formula & Tap Deployment Guide
 
-This guide describes how to publish and maintain a Homebrew Formula for `bitbid`, allowing macOS and Linux users to install the application via `brew install bitbid` or `brew install igmrrf/tap/bitbid`.
+This guide describes how to publish and maintain a Homebrew Formula for `bitbid`, allowing macOS and Linux users to install the application via `brew install bitbid` or `brew install igmrrf/taps/bitbid`.
 
 ---
 
 ## 📋 Distribution Options
 
 1. **Custom Homebrew Tap (Recommended for early/independent releases)**:
-   Users run `brew install igmrrf/tap/bitbid`.
+   Users run `brew install igmrrf/taps/bitbid`.
 2. **Homebrew Core (Official repository)**:
    Submitted via pull request to `homebrew/homebrew-core` once the project matures.
 
 ---
 
-## 🛠 Step 1: Create a Homebrew Tap Repository
+## 🛠 Step 1: Use the Homebrew Tap Repository
 
-Create a GitHub repository named `homebrew-tap` under your GitHub organization or account (`igmrrf/homebrew-tap`).
+Use the existing GitHub repository `igmrrf/homebrew-taps` for the prospective formula. The tap repository exists; a published `bitbid` formula is not established here.
 
 Directory structure:
 ```text
-homebrew-tap/
+homebrew-taps/
 └── Formula/
     └── bitbid.rb
 ```
@@ -48,12 +48,12 @@ Upload the `bitbid-mac.tar.gz` archive to your GitHub Releases as an asset.
 
 ## 🛠 Step 3: Write Homebrew Formula (`bitbid.rb`)
 
-Create `Formula/bitbid.rb` in your `homebrew-tap` repository:
+Create `Formula/bitbid.rb` in your `homebrew-taps` repository:
 
 ```ruby
 class Bitbid < Formula
   desc "Secure CLI tool to manage and encrypt environment variables"
-  homepage "https://github.com/igmrrf/clienv"
+  homepage "https://github.com/igmrrf/bitbid"
   url "<VERIFIED_RELEASE_ASSET_URL>"
   sha256 "<VERIFIED_ARCHIVE_SHA256>"
   version "0.1.0"
@@ -90,7 +90,7 @@ jobs:
         uses: mislav/bump-homebrew-formula-action@v2
         with:
           formula-name: bitbid
-          homebrew-tap: igmrrf/homebrew-tap
+          homebrew-tap: igmrrf/homebrew-taps
           download-url: <VERIFIED_RELEASE_ASSET_URL>
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
@@ -102,7 +102,7 @@ jobs:
 
 ```bash
 # Tap repository
-brew tap igmrrf/tap
+brew tap igmrrf/taps
 
 # Install bitbid
 brew install bitbid
