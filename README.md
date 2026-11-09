@@ -1,4 +1,4 @@
-# bitbid browser console
+# Bitbid browser console
 
 Yew client-side console with local seal/unseal and read-only registry exploration.
 The Rust crypto/protocol implementation is shared with the native CLI through

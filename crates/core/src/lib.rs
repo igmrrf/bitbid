@@ -1,4 +1,4 @@
-//! Browser-facing namespace for the shared native/WASM BitSec core.
+//! Browser-facing namespace for the shared native/WASM Bitbid core.
 //! Transport and UI stay in the app crate; protocol/crypto/registry codecs are shared.
 pub mod address;
 pub mod registry;
