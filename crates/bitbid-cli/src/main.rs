@@ -15,13 +15,14 @@ mod offline;
 mod project_config;
 mod secrets;
 mod wallet;
+mod compat;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "bsec",
+    name = "bitbid",
     version,
     about = "Decentralized, secure secret management and environment variable CLI tool",
-    long_about = "bsec is a CLI tool for secure environment variable management, schema validation, format conversion, and ephemeral secret sharing."
+    long_about = "bitbid is a CLI tool for secure environment variable management, schema validation, format conversion, and ephemeral secret sharing."
 )]
 struct Cli {
     #[command(subcommand)]
@@ -430,7 +431,7 @@ enum WalletCommands {
 fn print_banner() {
     println!("╔═══════════════════════════════════════╗");
     println!("║                                       ║");
-    println!("║                 BSEC                  ║");
+    println!("║                BITBID                 ║");
     println!("║  Blockchain-based Secret Management   ║");
     println!("║                                       ║");
     println!("╚═══════════════════════════════════════╝");
@@ -477,8 +478,8 @@ fn get_password_or_prompt(provided: Option<String>, prompt_msg: &str) -> Option<
 
 fn handle_cli_error(prefix: &str, err: anyhow::Error) -> ! {
     eprintln!("{}: {}", prefix, err);
-    if let Some(bsec_err) = err.downcast_ref::<errors::BsecError>() {
-        std::process::exit(bsec_err.exit_code());
+    if let Some(bitbid_err) = err.downcast_ref::<errors::BitbidError>() {
+        std::process::exit(bitbid_err.exit_code());
     }
 
     let code = errors::fallback_exit_code(&err.to_string());
@@ -529,7 +530,7 @@ fn main() {
 
         Some(Commands::Completion { shell }) => {
             let mut cmd = Cli::command();
-            clap_complete::generate(shell, &mut cmd, "bsec", &mut std::io::stdout());
+            clap_complete::generate(shell, &mut cmd, "bitbid", &mut std::io::stdout());
         }
 
         Some(Commands::Wallet {
@@ -614,7 +615,8 @@ fn main() {
             json,
         }) => {
             if show {
-                let conf = network_config::load_network_config();
+                let conf = network_config::load_network_config()
+                    .unwrap_or_else(|e| handle_cli_error("Error loading config", e));
                 if json {
                     if let Ok(j) = serde_json::to_string_pretty(&conf) {
                         println!("{}", j);
@@ -735,7 +737,7 @@ fn main() {
                     println!("Secret ID: {}", rec.id);
                     println!("Expires At: {}", rec.expires_at);
                     println!("Max Reads: {}", rec.max_reads);
-                    println!("To view this secret, run: bsec view {}", rec.id);
+                    println!("To view this secret, run: bitbid view {}", rec.id);
                 }
                 Err(e) => handle_cli_error("Error sharing secret", e),
             }
@@ -762,7 +764,7 @@ fn main() {
                         std::process::exit(3);
                     }
                     if payload.members.is_some() && output.is_none() && !json {
-                        println!("This secret is a bundle of files. Run: bsec materialize {} --dir <DIR>", secret_id);
+                        println!("This secret is a bundle of files. Run: bitbid materialize {} --dir <DIR>", secret_id);
                     }
                     if json {
                         let mut map = std::collections::BTreeMap::new();
@@ -1019,3 +1021,6 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod compatibility_tests;

@@ -1,3 +1,5 @@
+> Historical record; old names reflect the original version. For current installation and compatibility see [cutover](docs/rename-cutover.md).
+
 # Changelog
 
 ## Unreleased — production gates: CI, EIP-1559, legacy KDF removal

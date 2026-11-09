@@ -60,20 +60,8 @@ pub struct WalletFile {
     pub last_accessed: u64,
 }
 
-pub fn get_app_dir() -> PathBuf {
-    if let Ok(bsec_home) = std::env::var("BSEC_HOME") {
-        let path = PathBuf::from(bsec_home);
-        if !path.exists() {
-            let _ = fs::create_dir_all(&path);
-        }
-        return path;
-    }
-    let mut dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    dir.push(".bsec");
-    if !dir.exists() {
-        let _ = fs::create_dir_all(&dir);
-    }
-    dir
+pub fn get_app_dir() -> Result<PathBuf> {
+    crate::compat::app_dir()
 }
 
 pub fn current_timestamp() -> u64 {
@@ -329,7 +317,7 @@ pub fn init_wallet(
              store the wallet UNENCRYPTED (not recommended)."
         ));
     }
-    let app_dir = get_app_dir();
+    let app_dir = get_app_dir()?;
     let config_path = app_dir.join("config.json");
     let wallet_path = app_dir.join("wallet.json");
 
@@ -429,7 +417,7 @@ pub fn init_wallet(
 }
 
 pub fn get_wallet_info(password: Option<&str>) -> Result<WalletInfo> {
-    let app_dir = get_app_dir();
+    let app_dir = get_app_dir()?;
     let wallet_path = app_dir.join("wallet.json");
 
     if !wallet_path.exists() {

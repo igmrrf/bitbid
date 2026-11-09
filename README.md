@@ -1,4 +1,4 @@
-# BSEC
+# bitbid
 
 A powerful, high-performance CLI tool written in Rust for secure, decentralized environment variable management, file encryption, format conversion, schema validation, process environment injection, and secret sharing.
 
@@ -19,7 +19,7 @@ A powerful, high-performance CLI tool written in Rust for secure, decentralized 
 
 ## Security Model & Limitations
 
-Read this before relying on `bsec` for sensitive data.
+Read this before relying on `bitbid` for sensitive data.
 
 - **Confidentiality is cryptographic; access controls are advisory.** Secret payloads are
   encrypted with AES-256-GCM under a per-secret random key, which is wrapped for the
@@ -38,7 +38,7 @@ Read this before relying on `bsec` for sensitive data.
   Without a password the private key and mnemonic are stored unencrypted (mode 0600) and
   `init` prints a warning.
 - **`--no-export` is an in-tool control, not a cryptographic guarantee.** Sealing a secret
-  makes `bsec` refuse to write it to a file (`materialize`, `materialize --as schema`, and
+  makes `bitbid` refuse to write it to a file (`materialize`, `materialize --as schema`, and
   `view --output` are all blocked); terminal `view` and `run --secret` staging still work.
   But a recipient holds the plaintext after decrypt and can persist it by any other means.
   Treat the seal as a guard rail against accidental file writes, not as DRM.
@@ -56,8 +56,8 @@ Offline `seal` writes a versioned share string to stdout; `unseal` accepts that
 string or an IPFS payload JSON and writes the original bytes to stdout:
 
 ```bash
-bsec seal --to <recipient-SEC1-public-key-hex> --input message.txt
-bsec unseal --input token.txt --key-file recipient-private-key.txt
+bitbid seal --to <recipient-SEC1-public-key-hex> --input message.txt
+bitbid unseal --input token.txt --key-file recipient-private-key.txt
 ```
 
 Input defaults to stdin. Private keys are read from a file, never an inline flag.
@@ -70,20 +70,20 @@ for exact serialization, legacy compatibility and the deferred full split.
 
 ```bash
 # Build from source
-cargo build --locked --release -p bitbid-cli --bin bsec
+cargo build --locked --release -p bitbid-cli --bin bitbid
 
-# Install the bitbid-cli package locally; the executable stays bsec
+# Install the bitbid-cli package locally; the executable is bitbid
 cargo install --locked --path crates/bitbid-cli
 
 # Run binary
-./target/release/bsec --help
+./target/release/bitbid --help
 ```
 
 ---
 
 ## 🚀 Deployment & Distribution Guides
 
-For platform-specific installation and deployment flows, see the [Documentation Index](docs/README.md):
+Source-path Cargo installation is supported. Other distribution guides are prospective templates, not published packages or hosted artifacts. For details, see the [Documentation Index](docs/README.md):
 
 * 📦 **Cargo (local source installation)**: [`docs/cargo.md`](docs/cargo.md)
 * 🍺 **Homebrew**: [`docs/homebrew.md`](docs/homebrew.md)
@@ -102,55 +102,55 @@ For platform-specific installation and deployment flows, see the [Documentation 
 
 ```bash
 # Initialize a new wallet
-bsec init
+bitbid init
 
 # Initialize with password protection
-bsec init --password "your_password"
+bitbid init --password "your_password"
 
 # Import an existing wallet from mnemonic
-bsec init --import-mnemonic "word1 word2 ... word12"
+bitbid init --import-mnemonic "word1 word2 ... word12"
 
 # View wallet details
-bsec wallet info
+bitbid wallet info
 ```
 
-### 2. Process Environment Injection (`bsec run`)
+### 2. Process Environment Injection (`bitbid run`)
 
 ```bash
 # Run command with environment variables injected from .env.local (default)
-bsec run -- npm run dev
+bitbid run -- npm run dev
 
 # Run command with injected environment variables from a custom or encrypted file
-bsec run -e .env.prod.enc -- python app.py
+bitbid run -e .env.prod.enc -- python app.py
 ```
 
 ### 3. Secret Sharing & Ephemeral Storage
 
 ```bash
 # Share secret text (expires in 24h by default, 1 max read)
-bsec share --content "my-secret-api-key"
+bitbid share --content "my-secret-api-key"
 
 # Share secret with custom TTL and max reads limit
-bsec share --content "database-password" --ttl 1h --max-reads 5 --to 0x123...
+bitbid share --content "database-password" --ttl 1h --max-reads 5 --to 0x123...
 
 # Share secret from file
-bsec share --file secret.txt --ttl 7d
+bitbid share --file secret.txt --ttl 7d
 
 # View a secret (auto-destructs upon reaching max reads or expiry)
-bsec view <secret_id>
+bitbid view <secret_id>
 
 # Save decrypted secret directly to a file
-bsec view <secret_id> --output decrypted.txt
+bitbid view <secret_id> --output decrypted.txt
 
 # List active or expired secrets
-bsec list --active
-bsec list --expired
+bitbid list --active
+bitbid list --expired
 
 # Revoke a shared secret immediately
-bsec revoke <secret_id>
+bitbid revoke <secret_id>
 
 # Hide secret(s)
-bsec hide <secret_id>
+bitbid hide <secret_id>
 ```
 
 ### 3b. Materializing Secrets to Files
@@ -161,11 +161,11 @@ it — or stage it for a command with `run --secret`.
 
 ```bash
 # Share a file as a tagged, materializable secret (kind inferred from extension, or --as)
-bsec share --file ./cert.pem --to 0x04<recipient-pubkey>
-bsec share --file ./creds.json --as json --filename service-account.json --to 0x04...
+bitbid share --file ./cert.pem --to 0x04<recipient-pubkey>
+bitbid share --file ./creds.json --as json --filename service-account.json --to 0x04...
 
-# Seal it: bsec will refuse every file write (terminal view only)
-bsec share --file ./cert.pem --no-export --to 0x04...
+# Seal it: bitbid will refuse every file write (terminal view only)
+bitbid share --file ./cert.pem --no-export --to 0x04...
 
 # Pack several files into one secret via a bundle manifest
 cat > bundle.json <<'JSON'
@@ -176,21 +176,21 @@ cat > bundle.json <<'JSON'
   { "path": "./.env.prod",  "as": "env",  "filename": ".env" }
 ] }
 JSON
-bsec share --bundle bundle.json --to 0x04...
+bitbid share --bundle bundle.json --to 0x04...
 
 # Materialize a single secret to a file or directory (mode 0600). One call = one read.
-bsec materialize <secret_id> --file ./out/cert.pem
-bsec materialize <secret_id> --dir ./out            # uses the sender's suggested filename
+bitbid materialize <secret_id> --file ./out/cert.pem
+bitbid materialize <secret_id> --dir ./out            # uses the sender's suggested filename
 
 # Materialize a bundle: every member is written under --dir
-bsec materialize <secret_id> --dir ./secrets
+bitbid materialize <secret_id> --dir ./secrets
 
 # Extract just the KEY names (no values) as a .env.schema
-bsec materialize <secret_id> --as schema --file .env.schema
+bitbid materialize <secret_id> --as schema --file .env.schema
 
-# Stage files into a wiped-on-exit temp dir and run a command. For each member, bsec injects
+# Stage files into a wiped-on-exit temp dir and run a command. For each member, bitbid injects
 # <STEM>_FILE=<abspath> (plus any manifest "env" alias); env members also inject KEY=VAL.
-bsec run --secret <secret_id> -- sh -c 'echo "$GOOGLE_APPLICATION_CREDENTIALS"; cat "$CERT_FILE"'
+bitbid run --secret <secret_id> -- sh -c 'echo "$GOOGLE_APPLICATION_CREDENTIALS"; cat "$CERT_FILE"'
 ```
 
 Notes: sender-supplied filenames are sanitized to plain basenames (no `..`, no separators).
@@ -201,25 +201,25 @@ Binary bodies (keystores, DER) are stored base64 and restored to raw bytes on wr
 
 ```bash
 # Display current network configuration
-bsec config --show
+bitbid config --show
 
 # Configure network (polygon, base, amoy, sepolia, base-sepolia, local)
-bsec config --network amoy
+bitbid config --network amoy
 
 # Set custom network and RPC endpoint
-bsec config --network sepolia --rpc "https://rpc.sepolia.org"
+bitbid config --network sepolia --rpc "https://rpc.sepolia.org"
 ```
 
 ### 5. Testnets & Free Faucets Guide
 
-For team development, testing, or zero-cost execution, configure `bsec` to use a testnet or local node:
+For team development, testing, or zero-cost execution, configure `bitbid` to use a testnet or local node:
 
-| Network | Chain ID | `bsec` Network Flag | Free Token Faucet Links |
+| Network | Chain ID | `bitbid` Network Flag | Free Token Faucet Links |
 | :--- | :---: | :--- | :--- |
-| **Polygon Amoy Testnet** | `80002` | `bsec config --network amoy` | • <https://faucet.polygon.technology/> |
-| **Ethereum Sepolia Testnet** | `11155111` | `bsec config --network sepolia` | • <https://sepoliafaucet.com/><br>• <https://sepolia-faucet.pk910.de/><br>• <https://faucets.chain.link/> |
-| **Base Sepolia Testnet** | `84532` | `bsec config --network base-sepolia` | • <https://www.bwarelabs.com/faucets/base-sepolia><br>• <https://faucets.chain.link/base-sepolia> |
-| **Local Docker Compose Node** | `31337` | `bsec config --network local` | • **Auto Pre-Funded** (10,000 test ETH on `docker compose up`) |
+| **Polygon Amoy Testnet** | `80002` | `bitbid config --network amoy` | • <https://faucet.polygon.technology/> |
+| **Ethereum Sepolia Testnet** | `11155111` | `bitbid config --network sepolia` | • <https://sepoliafaucet.com/><br>• <https://sepolia-faucet.pk910.de/><br>• <https://faucets.chain.link/> |
+| **Base Sepolia Testnet** | `84532` | `bitbid config --network base-sepolia` | • <https://www.bwarelabs.com/faucets/base-sepolia><br>• <https://faucets.chain.link/base-sepolia> |
+| **Local Docker Compose Node** | `31337` | `bitbid config --network local` | • **Auto Pre-Funded** (10,000 test ETH on `docker compose up`) |
 
 #### Using Local Docker Testnet
 
@@ -227,34 +227,34 @@ For team development, testing, or zero-cost execution, configure `bsec` to use a
 # Spin up local EVM node (Anvil) & IPFS gateway in Docker
 docker compose up -d
 
-# Switch bsec to local testnet
-bsec config --network local
+# Switch bitbid to local testnet
+bitbid config --network local
 ```
 
 ### 6. Format Conversion & Utilities
 
 ```bash
 # Convert JSON to .env format
-bsec convert config.json .env.local --format env
+bitbid convert config.json .env.local --format env
 
 # Convert with prefix
-bsec convert config.json .env.local --prefix "NEXT_PUBLIC_"
+bitbid convert config.json .env.local --prefix "NEXT_PUBLIC_"
 
 # Embed JavaScript object properties
-bsec convert config.json config.js --embed "VUE_APP_"
+bitbid convert config.json config.js --embed "VUE_APP_"
 ```
 
 ### 7. Schema Validation & Templates
 
 ```bash
 # Validate .env.local against .env.schema
-bsec validate -e .env.local -s .env.schema
+bitbid validate -e .env.local -s .env.schema
 
 # Generate .env.template from existing .env file
-bsec generate -e .env -o .env.template
+bitbid generate -e .env -o .env.template
 
 # Inspect single environment variable value
-bsec log MONGO_URL -f .env.local
+bitbid log MONGO_URL -f .env.local
 ```
 
 ### 8. File-Level Encryption
@@ -264,23 +264,23 @@ bsec log MONGO_URL -f .env.local
 echo "my_secure_password" > .env.pass
 
 # Encrypt .env file
-bsec encrypt .env -o .env.enc
+bitbid encrypt .env -o .env.enc
 
 # Decrypt .env.enc file
-bsec decrypt .env.enc -o .env.dec
+bitbid decrypt .env.enc -o .env.dec
 ```
 
 ### 9. Legacy Key-Value Storage
 
 ```bash
 # Store encrypted key-value pair
-bsec set MONGO_URI "mongodb://localhost:27017"
+bitbid set MONGO_URI "mongodb://localhost:27017"
 
 # Retrieve key-value pair
-bsec get MONGO_URI
+bitbid get MONGO_URI
 
 # Search for pattern in file
-bsec search "API_KEY" --path .env
+bitbid search "API_KEY" --path .env
 ```
 
 ---
@@ -291,3 +291,5 @@ bsec search "API_KEY" --path .env
 - <https://github.com/nathanagez/env-cli>
 - <https://github.com/jaydenwindle/senv>
 - <https://github.com/chempogonzalez/dotenv-checker>
+
+See [rename cutover and compatibility](docs/rename-cutover.md) for supported legacy inputs, installation upgrades, and scoped rollback.

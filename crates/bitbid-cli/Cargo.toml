@@ -5,14 +5,13 @@ authors = ["The Lazy <francis.igbiriki@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "a tool to manage your env variables"
 readme = "../../README.md"
-homepage = "https://bsec.dev"
-repository = "https://github.com/igmrrf/bsec"
+repository = "https://github.com/igmrrf/clienv"
 keywords = ["cli", "env", "manage", "track", "encrypt"]
 categories = ["command-line-utilities", "virtualization"]
 edition = "2024"
 
 [[bin]]
-name = "bsec"
+name = "bitbid"
 path = "src/main.rs"
 
 [dependencies]

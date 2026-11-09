@@ -2,9 +2,9 @@
 //!
 //! Target Modules: `src/secrets.rs`, `src/wallet.rs`, `src/main.rs`
 //! Flow Tested:
-//!   - Public secret sharing (`bsec share --to public`) & auto-destruction upon max-read limit or TTL
-//!   - Forward-secret ECDH secp256k1 public key encrypted secret exchange (`bsec share --to 0x04...`)
-//!   - Password-protected wallet secret sharing and viewing (`bsec share --password`, `bsec view --password`)
+//!   - Public secret sharing (`bitbid share --to public`) & auto-destruction upon max-read limit or TTL
+//!   - Forward-secret ECDH secp256k1 public key encrypted secret exchange (`bitbid share --to 0x04...`)
+//!   - Password-protected wallet secret sharing and viewing (`bitbid share --password`, `bitbid view --password`)
 //!   - Rejection of external 20-byte EVM addresses for ECDH key exchange without explicit SEC1 public key
 //!   - Full secret management lifecycle: `share` -> `view` -> `list` -> `revoke` -> `hide`
 
@@ -16,10 +16,10 @@ use std::process::Command;
 /// illustrative CLI checks require a deployed registry, a funded wallet, and an IPFS backend.
 /// The primary end-to-end verification is `scripts/e2e-setup.sh` followed by driving the CLI
 /// (it provisions and funds a single wallet sequentially, avoiding nonce races). These tests
-/// each use an isolated `BSEC_HOME`, so running them live also needs per-home funding and
-/// `--test-threads=1`. Skipped unless `BSEC_E2E=1`.
+/// each use an isolated `BITBID_HOME`, so running them live also needs per-home funding and
+/// `--test-threads=1`. Skipped unless `BITBID_E2E=1`.
 fn e2e_enabled() -> bool {
-    std::env::var("BSEC_E2E").map(|v| v == "1").unwrap_or(false)
+    std::env::var("BITBID_E2E").map(|v| v == "1").unwrap_or(false)
 }
 
 macro_rules! require_e2e {
@@ -27,7 +27,7 @@ macro_rules! require_e2e {
         if !e2e_enabled() {
             eprintln!(
                 "SKIP: on-chain e2e. Use scripts/e2e-setup.sh to provision anvil + IPFS + a funded \
-                 wallet, then set BSEC_E2E=1 (run with --test-threads=1)."
+                 wallet, then set BITBID_E2E=1 (run with --test-threads=1)."
             );
             return Ok(());
         }
@@ -35,20 +35,20 @@ macro_rules! require_e2e {
 }
 
 /// Configure `home` for the local e2e stack and fund its wallet from anvil's unlocked account.
-/// Connection details come from env so CI can inject them: BSEC_E2E_RPC (default
-/// http://localhost:8545), BSEC_E2E_REGISTRY (required), BSEC_E2E_IPFS_GATEWAY
-/// (default http://localhost:8080/ipfs/), BSEC_E2E_FUNDER (default anvil account #0).
+/// Connection details come from env so CI can inject them: BITBID_E2E_RPC (default
+/// http://localhost:8545), BITBID_E2E_REGISTRY (required), BITBID_E2E_IPFS_GATEWAY
+/// (default http://localhost:8080/ipfs/), BITBID_E2E_FUNDER (default anvil account #0).
 fn provision_local(home: &std::path::Path, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let rpc = std::env::var("BSEC_E2E_RPC").unwrap_or_else(|_| "http://localhost:8545".to_string());
-    let registry = std::env::var("BSEC_E2E_REGISTRY")
-        .expect("BSEC_E2E_REGISTRY must be set for e2e (the deployed BsecSecretRegistry address)");
-    let gateway = std::env::var("BSEC_E2E_IPFS_GATEWAY")
+    let rpc = std::env::var("BITBID_E2E_RPC").unwrap_or_else(|_| "http://localhost:8545".to_string());
+    let registry = std::env::var("BITBID_E2E_REGISTRY")
+        .expect("BITBID_E2E_REGISTRY must be set for e2e (the deployed BsecSecretRegistry address)");
+    let gateway = std::env::var("BITBID_E2E_IPFS_GATEWAY")
         .unwrap_or_else(|_| "http://localhost:8080/ipfs/".to_string());
-    let funder = std::env::var("BSEC_E2E_FUNDER")
+    let funder = std::env::var("BITBID_E2E_FUNDER")
         .unwrap_or_else(|_| "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string());
 
-    let mut cfg = Command::cargo_bin("bsec")?;
-    cfg.current_dir(home).env("BSEC_HOME", home);
+    let mut cfg = Command::cargo_bin("bitbid")?;
+    cfg.current_dir(home).env("BITBID_HOME", home);
     cfg.args([
         "config", "--network", "local", "--rpc", &rpc, "--registry", &registry,
         "--ipfs-gateway", &gateway,
@@ -70,8 +70,8 @@ fn provision_local(home: &std::path::Path, addr: &str) -> Result<(), Box<dyn std
 /// Init an unencrypted wallet in `home`; under e2e, also point it at the local stack and fund it.
 /// Returns the init stdout so callers can parse the address / public key.
 fn init_and_provision(home: &std::path::Path) -> Result<String, Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("bsec")?;
-    cmd.current_dir(home).env("BSEC_HOME", home);
+    let mut cmd = Command::cargo_bin("bitbid")?;
+    cmd.current_dir(home).env("BITBID_HOME", home);
     cmd.arg("init").arg("--overwrite").arg("--no-encryption");
     let out = cmd.output()?;
     assert!(out.status.success(), "wallet init failed");
@@ -89,7 +89,7 @@ fn init_and_provision(home: &std::path::Path) -> Result<String, Box<dyn std::err
 
 /// Tests public secret sharing flow accessible without individual recipient keys.
 /// Target File: `src/secrets.rs` -> `share_secret()`, `view_secret()`
-/// Flow: `bsec share --to public --content ...` -> `bsec view <secret_id>`
+/// Flow: `bitbid share --to public --content ...` -> `bitbid view <secret_id>`
 #[test]
 fn test_public_secret_sharing_flow() -> Result<(), Box<dyn std::error::Error>> {
     require_e2e!();
@@ -99,9 +99,9 @@ fn test_public_secret_sharing_flow() -> Result<(), Box<dyn std::error::Error>> {
     init_and_provision(temp_dir.path())?;
 
     // 2. User A shares a public secret
-    let mut cmd_share = Command::cargo_bin("bsec")?;
+    let mut cmd_share = Command::cargo_bin("bitbid")?;
     cmd_share.current_dir(temp_dir.path());
-    cmd_share.env("BSEC_HOME", temp_dir.path());
+    cmd_share.env("BITBID_HOME", temp_dir.path());
     cmd_share
         .arg("share")
         .arg("--content")
@@ -125,9 +125,9 @@ fn test_public_secret_sharing_flow() -> Result<(), Box<dyn std::error::Error>> {
     assert!(!secret_id.is_empty());
 
     // 3. View public secret
-    let mut cmd_view = Command::cargo_bin("bsec")?;
+    let mut cmd_view = Command::cargo_bin("bitbid")?;
     cmd_view.current_dir(temp_dir.path());
-    cmd_view.env("BSEC_HOME", temp_dir.path());
+    cmd_view.env("BITBID_HOME", temp_dir.path());
     cmd_view.arg("view").arg(&secret_id);
     cmd_view
         .assert()
@@ -139,7 +139,7 @@ fn test_public_secret_sharing_flow() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Tests asymmetric ECDH secp256k1 key exchange when sharing secrets to a SEC1 public key (0x04...).
 /// Target File: `src/secrets.rs` -> `resolve_recipient_pubkey()`, `share_secret()`
-/// Flow: Extract recipient public key -> `bsec share --to <pubkey>` -> `bsec view <secret_id>`
+/// Flow: Extract recipient public key -> `bitbid share --to <pubkey>` -> `bitbid view <secret_id>`
 #[test]
 fn test_ecdh_pubkey_secret_sharing_flow() -> Result<(), Box<dyn std::error::Error>> {
     require_e2e!();
@@ -157,9 +157,9 @@ fn test_ecdh_pubkey_secret_sharing_flow() -> Result<(), Box<dyn std::error::Erro
     assert!(!pubkey.is_empty());
 
     // Share secret using SEC1 Public Key
-    let mut cmd_share = Command::cargo_bin("bsec")?;
+    let mut cmd_share = Command::cargo_bin("bitbid")?;
     cmd_share.current_dir(temp_dir.path());
-    cmd_share.env("BSEC_HOME", temp_dir.path());
+    cmd_share.env("BITBID_HOME", temp_dir.path());
     cmd_share
         .arg("share")
         .arg("--content")
@@ -181,9 +181,9 @@ fn test_ecdh_pubkey_secret_sharing_flow() -> Result<(), Box<dyn std::error::Erro
     assert!(!secret_id.is_empty());
 
     // View secret addressed to public key
-    let mut cmd_view = Command::cargo_bin("bsec")?;
+    let mut cmd_view = Command::cargo_bin("bitbid")?;
     cmd_view.current_dir(temp_dir.path());
-    cmd_view.env("BSEC_HOME", temp_dir.path());
+    cmd_view.env("BITBID_HOME", temp_dir.path());
     cmd_view.arg("view").arg(&secret_id);
     cmd_view
         .assert()
@@ -195,16 +195,16 @@ fn test_ecdh_pubkey_secret_sharing_flow() -> Result<(), Box<dyn std::error::Erro
 
 /// Tests secret sharing and retrieval when the wallet is encrypted with a password.
 /// Target File: `src/secrets.rs` -> `share_secret()`, `view_secret()` with `password`
-/// Flow: `bsec init --password` -> `bsec share --password` -> `bsec view --password`
+/// Flow: `bitbid init --password` -> `bitbid share --password` -> `bitbid view --password`
 #[test]
 fn test_password_protected_wallet_secret_viewing() -> Result<(), Box<dyn std::error::Error>> {
     require_e2e!();
     let temp_dir = assert_fs::TempDir::new()?;
 
     // 1. Initialize wallet with password "secret_pwd_123"
-    let mut cmd_init = Command::cargo_bin("bsec")?;
+    let mut cmd_init = Command::cargo_bin("bitbid")?;
     cmd_init.current_dir(temp_dir.path());
-    cmd_init.env("BSEC_HOME", temp_dir.path());
+    cmd_init.env("BITBID_HOME", temp_dir.path());
     cmd_init
         .arg("init")
         .arg("--overwrite")
@@ -213,9 +213,9 @@ fn test_password_protected_wallet_secret_viewing() -> Result<(), Box<dyn std::er
     cmd_init.assert().success();
 
     // 2. Share secret to self
-    let mut cmd_info = Command::cargo_bin("bsec")?;
+    let mut cmd_info = Command::cargo_bin("bitbid")?;
     cmd_info.current_dir(temp_dir.path());
-    cmd_info.env("BSEC_HOME", temp_dir.path());
+    cmd_info.env("BITBID_HOME", temp_dir.path());
     cmd_info.arg("wallet").arg("info").arg("--password").arg("secret_pwd_123");
     let assert_info = cmd_info.assert().success();
     let stdout_info = String::from_utf8(assert_info.get_output().stdout.clone())?;
@@ -230,9 +230,9 @@ fn test_password_protected_wallet_secret_viewing() -> Result<(), Box<dyn std::er
     // Point this (encrypted) wallet's home at the local stack and fund it before it transacts.
     provision_local(temp_dir.path(), &wallet_addr)?;
 
-    let mut cmd_share = Command::cargo_bin("bsec")?;
+    let mut cmd_share = Command::cargo_bin("bitbid")?;
     cmd_share.current_dir(temp_dir.path());
-    cmd_share.env("BSEC_HOME", temp_dir.path());
+    cmd_share.env("BITBID_HOME", temp_dir.path());
     cmd_share
         .arg("share")
         .arg("--content")
@@ -256,9 +256,9 @@ fn test_password_protected_wallet_secret_viewing() -> Result<(), Box<dyn std::er
     assert!(!secret_id.is_empty());
 
     // 3. View secret providing password
-    let mut cmd_view = Command::cargo_bin("bsec")?;
+    let mut cmd_view = Command::cargo_bin("bitbid")?;
     cmd_view.current_dir(temp_dir.path());
-    cmd_view.env("BSEC_HOME", temp_dir.path());
+    cmd_view.env("BITBID_HOME", temp_dir.path());
     cmd_view
         .arg("view")
         .arg(&secret_id)
@@ -274,21 +274,21 @@ fn test_password_protected_wallet_secret_viewing() -> Result<(), Box<dyn std::er
 
 /// Tests that attempting to perform ECDH key exchange with a 20-byte EVM address (without public key) is rejected.
 /// Target File: `src/secrets.rs` -> `resolve_recipient_pubkey()`
-/// Flow: `bsec share --to 0x1111222233334444555566667777888899990000` -> error assertion
+/// Flow: `bitbid share --to 0x1111222233334444555566667777888899990000` -> error assertion
 #[test]
 fn test_external_address_rejection_for_ecdh() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
 
-    let mut cmd_init = Command::cargo_bin("bsec")?;
+    let mut cmd_init = Command::cargo_bin("bitbid")?;
     cmd_init.current_dir(temp_dir.path());
-    cmd_init.env("BSEC_HOME", temp_dir.path());
+    cmd_init.env("BITBID_HOME", temp_dir.path());
     cmd_init.arg("init").arg("--overwrite").arg("--no-encryption");
     cmd_init.assert().success();
 
     let external_addr = "0x1111222233334444555566667777888899990000";
-    let mut cmd_share = Command::cargo_bin("bsec")?;
+    let mut cmd_share = Command::cargo_bin("bitbid")?;
     cmd_share.current_dir(temp_dir.path());
-    cmd_share.env("BSEC_HOME", temp_dir.path());
+    cmd_share.env("BITBID_HOME", temp_dir.path());
     cmd_share
         .arg("share")
         .arg("--content")
@@ -305,7 +305,7 @@ fn test_external_address_rejection_for_ecdh() -> Result<(), Box<dyn std::error::
 
 /// Tests full secret management lifecycle: share -> list -> revoke -> hide.
 /// Target File: `src/secrets.rs` -> `share_secret()`, `list_secrets()`, `revoke_secret()`, `hide_secret()`
-/// Flow: `bsec init` -> `bsec share` -> `bsec list` -> `bsec revoke` -> `bsec hide`
+/// Flow: `bitbid init` -> `bitbid share` -> `bitbid list` -> `bitbid revoke` -> `bitbid hide`
 #[test]
 fn test_wallet_and_secret_sharing_lifecycle_flow() -> Result<(), Box<dyn std::error::Error>> {
     require_e2e!();
@@ -315,9 +315,9 @@ fn test_wallet_and_secret_sharing_lifecycle_flow() -> Result<(), Box<dyn std::er
     init_and_provision(temp_dir.path())?;
 
     // 2. Share secret
-    let mut cmd_share = Command::cargo_bin("bsec")?;
+    let mut cmd_share = Command::cargo_bin("bitbid")?;
     cmd_share.current_dir(temp_dir.path());
-    cmd_share.env("BSEC_HOME", temp_dir.path());
+    cmd_share.env("BITBID_HOME", temp_dir.path());
     cmd_share
         .arg("share")
         .arg("--content")
@@ -339,9 +339,9 @@ fn test_wallet_and_secret_sharing_lifecycle_flow() -> Result<(), Box<dyn std::er
     assert!(!secret_id.is_empty());
 
     // 3. List secrets
-    let mut cmd_list = Command::cargo_bin("bsec")?;
+    let mut cmd_list = Command::cargo_bin("bitbid")?;
     cmd_list.current_dir(temp_dir.path());
-    cmd_list.env("BSEC_HOME", temp_dir.path());
+    cmd_list.env("BITBID_HOME", temp_dir.path());
     cmd_list.arg("list");
     cmd_list
         .assert()
@@ -349,16 +349,16 @@ fn test_wallet_and_secret_sharing_lifecycle_flow() -> Result<(), Box<dyn std::er
         .stdout(predicate::str::contains(&secret_id));
 
     // 4. Revoke secret
-    let mut cmd_revoke = Command::cargo_bin("bsec")?;
+    let mut cmd_revoke = Command::cargo_bin("bitbid")?;
     cmd_revoke.current_dir(temp_dir.path());
-    cmd_revoke.env("BSEC_HOME", temp_dir.path());
+    cmd_revoke.env("BITBID_HOME", temp_dir.path());
     cmd_revoke.arg("revoke").arg(&secret_id);
     cmd_revoke.assert().success();
 
     // 5. Hide secret
-    let mut cmd_hide = Command::cargo_bin("bsec")?;
+    let mut cmd_hide = Command::cargo_bin("bitbid")?;
     cmd_hide.current_dir(temp_dir.path());
-    cmd_hide.env("BSEC_HOME", temp_dir.path());
+    cmd_hide.env("BITBID_HOME", temp_dir.path());
     cmd_hide.arg("hide").arg("--all");
     cmd_hide.assert().success();
 

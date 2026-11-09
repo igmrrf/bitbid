@@ -76,30 +76,30 @@ docker run --rm -v "$PWD/contracts:/contracts" \
   --broadcast
 ```
 
-### Step 3: Register the Deployed Address in `bsec`
+### Step 3: Register the Deployed Address in `bitbid`
 
-Point `bsec` at the local node **and** the deployed registry address (from Step 2):
+Point `bitbid` at the local node **and** the deployed registry address (from Step 2):
 
 ```bash
-bsec config --network local \
+bitbid config --network local \
   --rpc "http://localhost:8545" \
   --registry "0xYourDeployedRegistryAddress"
 ```
 
 The local IPFS daemon at `http://127.0.0.1:5001` is used automatically (`ipfs.api_url`).
 
-### Step 4: Create and Fund the `bsec` Wallet
+### Step 4: Create and Fund the `bitbid` Wallet
 
-`bsec` generates its own wallet, which is **separate** from Anvil's pre-funded accounts and
+`bitbid` generates its own wallet, which is **separate** from Anvil's pre-funded accounts and
 starts with a zero balance. On-chain writes (`share`, `view`, `revoke`) send real transactions,
 so the wallet must hold native gas token. Create it, then fund it from Anvil Account 0:
 
 ```bash
 # Create the wallet (add --password to encrypt at rest)
-bsec init --overwrite
+bitbid init --overwrite
 
 # Read the wallet address
-WALLET=$(bsec wallet info | awk '/Address:/ {print $2}')
+WALLET=$(bitbid wallet info | awk '/Address:/ {print $2}')
 
 # Fund it with 10 ETH from Anvil Account 0
 cast send "$WALLET" --value 10ether \
@@ -111,18 +111,18 @@ cast send "$WALLET" --value 10ether \
 
 ```bash
 # Share a public secret -> prints a Secret ID
-bsec share --content "hello local chain" --to public --ttl 1h --max-reads 3
+bitbid share --content "hello local chain" --to public --ttl 1h --max-reads 3
 
 # View it back by ID (real eth_call + IPFS fetch)
-bsec view <secret_id>
+bitbid view <secret_id>
 
 # List and revoke
-bsec list
-bsec revoke <secret_id>
+bitbid list
+bitbid revoke <secret_id>
 ```
 
 > Shortcut: `./scripts/e2e-setup.sh` automates Steps 1–4 (bring up stack, deploy, configure,
-> create + fund wallet), after which `BSEC_E2E=1 cargo test` runs the gated integration flows.
+> create + fund wallet), after which `BITBID_E2E=1 cargo test` runs the gated integration flows.
 
 ---
 
@@ -130,11 +130,11 @@ bsec revoke <secret_id>
 
 ### Supported Networks & Faucets
 
-| Network | Chain ID | `bsec` Network Flag | Free Token Faucets |
+| Network | Chain ID | `bitbid` Network Flag | Free Token Faucets |
 | :--- | :---: | :--- | :--- |
-| **Polygon Amoy** | `80002` | `bsec config --network amoy` | • <https://faucet.polygon.technology/> |
-| **Ethereum Sepolia** | `11155111` | `bsec config --network sepolia` | • <https://sepoliafaucet.com/><br>• <https://faucets.chain.link/> |
-| **Base Sepolia** | `84532` | `bsec config --network base-sepolia` | • <https://faucets.chain.link/base-sepolia> |
+| **Polygon Amoy** | `80002` | `bitbid config --network amoy` | • <https://faucet.polygon.technology/> |
+| **Ethereum Sepolia** | `11155111` | `bitbid config --network sepolia` | • <https://sepoliafaucet.com/><br>• <https://faucets.chain.link/> |
+| **Base Sepolia** | `84532` | `bitbid config --network base-sepolia` | • <https://faucets.chain.link/base-sepolia> |
 
 ---
 
@@ -147,11 +147,11 @@ export PRIVATE_KEY="0x_your_private_key_here"
 ```
 
 > On recent Foundry, add `--broadcast` to each `forge create` below to send the deploy
-> transaction. After deploying, register the address and fund your `bsec` wallet:
+> transaction. After deploying, register the address and fund your `bitbid` wallet:
 >
 > ```bash
-> bsec config --network <net> --registry 0xYourDeployedRegistryAddress
-> # then fund the `bsec wallet info` address from a faucet before share/view/revoke
+> bitbid config --network <net> --registry 0xYourDeployedRegistryAddress
+> # then fund the `bitbid wallet info` address from a faucet before share/view/revoke
 > ```
 
 #### A. Polygon Amoy Testnet (Chain ID 80002)

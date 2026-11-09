@@ -112,15 +112,15 @@ jobs:
           test -n "$REG" || { echo "failed to parse deployed address"; exit 1; }
           echo "registry=$REG" >> "$GITHUB_OUTPUT"
 
-      # Each test uses an isolated BSEC_HOME; the harness configures it for this stack and funds
+      # Each test uses an isolated BITBID_HOME; the harness configures it for this stack and funds
       # its fresh wallet from anvil account #0. --test-threads=1 avoids nonce races.
       - name: Run gated on-chain tests
         env:
-          BSEC_E2E: "1"
-          BSEC_E2E_REGISTRY: ${{ steps.deploy.outputs.registry }}
-          BSEC_E2E_RPC: "http://localhost:8545"
-          BSEC_E2E_IPFS_GATEWAY: "http://localhost:8080/ipfs/"
-          BSEC_E2E_FUNDER: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+          BITBID_E2E: "1"
+          BITBID_E2E_REGISTRY: ${{ steps.deploy.outputs.registry }}
+          BITBID_E2E_RPC: "http://localhost:8545"
+          BITBID_E2E_IPFS_GATEWAY: "http://localhost:8080/ipfs/"
+          BITBID_E2E_FUNDER: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
         run: cargo test --locked -p bitbid-cli --test materialize_tests --test secrets_tests -- --test-threads=1
 
   coverage:

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # End-to-end local setup: brings up anvil + IPFS, deploys BsecSecretRegistry,
-# configures bsec, and creates + funds the bsec wallet against the local stack.
+# configures bitbid, and creates + funds the bitbid wallet against the local stack.
 #
 # Requirements: docker (compose). Foundry (forge) runs via the foundry docker image,
-# so no host install is needed. The bsec release binary is built from source.
+# so no host install is needed. The bitbid release binary is built from source.
 #
 # Notes on the environment this was validated against (macOS / Docker Desktop):
 #   - The foundry image ENTRYPOINT is ["/bin/sh","-c"], so the forge command is passed as a
@@ -13,22 +13,28 @@
 #
 # Usage:
 #   ./scripts/e2e-setup.sh
-#   BSEC_HOME=~/.bsec BSEC_E2E=1 cargo test --locked -p bitbid-cli    # run gated integration flows against this stack
+#   BITBID_HOME=~/.bitbid BITBID_E2E=1 cargo test --locked -p bitbid-cli    # run gated integration flows against this stack
 set -euo pipefail
 
 RPC_URL="http://localhost:8545"
 ANVIL_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 ANVIL_ACCT0="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 FOUNDRY_IMG="ghcr.io/foundry-rs/foundry:latest"
-BIN="./target/release/bsec"
-export BSEC_HOME="${BSEC_HOME:-$HOME/.bsec}"
+BIN="./target/release/bitbid"
+# Let the CLI choose canonical/legacy homes by presence, including blank/error cases.
+# Do not default with ${VAR:-...}: a present blank BITBID_HOME must fail.
+INIT_OUT=$(mktemp "${TMPDIR:-/tmp}/bitbid-init.XXXXXX")
+trap 'rm -f "$INIT_OUT"' EXIT
 
 rpc() { # rpc <json-body>
   curl -s -X POST "$RPC_URL" -H 'content-type: application/json' -d "$1"
 }
 
-echo "==> Building bsec release binary"
-cargo build --locked --release -p bitbid-cli --bin bsec --quiet
+echo "==> Building bitbid release binary"
+cargo build --locked --release -p bitbid-cli --bin bitbid --quiet
+
+# Resolve the selected root before any local stack mutation.
+"$BIN" config --show >/dev/null
 
 echo "==> Starting anvil + IPFS"
 docker compose up -d
@@ -48,13 +54,13 @@ DEPLOY_OUT=$(docker run --rm -w /tmp -v "$PWD/contracts:/contracts" "$FOUNDRY_IM
 REGISTRY=$(echo "$DEPLOY_OUT" | grep -Eo 'Deployed to: 0x[0-9a-fA-F]{40}' | awk '{print $3}')
 echo "    registry: $REGISTRY"
 
-echo "==> Configuring bsec for local stack (BSEC_HOME=$BSEC_HOME)"
+echo "==> Configuring bitbid for local stack"
 $BIN config --network local --rpc "$RPC_URL" --registry "$REGISTRY" \
   --ipfs-gateway "http://localhost:8080/ipfs/" >/dev/null
 
 echo "==> Initializing wallet"
-$BIN init --overwrite >/tmp/bsec-init.txt 2>/dev/null
-WALLET=$(awk '/Address:/ {print $2}' /tmp/bsec-init.txt)
+$BIN init --overwrite >"$INIT_OUT" 2>/dev/null
+WALLET=$(awk '/Address:/ {print $2}' "$INIT_OUT")
 echo "    wallet: $WALLET"
 
 echo "==> Funding wallet with 10 ETH from anvil account #0"

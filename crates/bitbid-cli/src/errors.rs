@@ -2,8 +2,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 #[allow(dead_code)]
-pub enum BsecError {
-    #[error("Wallet not found. Please run 'bsec init' first.")]
+pub enum BitbidError {
+    #[error("Wallet not found. Please run 'bitbid init' first.")]
     WalletNotFound,
 
     #[error("Invalid password or wallet data corrupted.")]
@@ -40,35 +40,39 @@ pub enum BsecError {
     Generic(String),
 }
 
-impl BsecError {
+impl BitbidError {
     #[allow(dead_code)]
     pub fn exit_code(&self) -> i32 {
         match self {
-            BsecError::InvalidPassword => 2,
-            BsecError::SecretExpired
-            | BsecError::SecretNotFound(_)
-            | BsecError::PermissionDenied(_) => 3,
-            BsecError::IoError(_) | BsecError::ParseError(_) | BsecError::ConfigError(_) => 4,
-            BsecError::InvalidMnemonic(_) | BsecError::InvalidRecipient(_) => 5,
+            BitbidError::InvalidPassword => 2,
+            BitbidError::SecretExpired
+            | BitbidError::SecretNotFound(_)
+            | BitbidError::PermissionDenied(_) => 3,
+            BitbidError::IoError(_) | BitbidError::ParseError(_) | BitbidError::ConfigError(_) => 4,
+            BitbidError::InvalidMnemonic(_) | BitbidError::InvalidRecipient(_) => 5,
             _ => 1,
         }
     }
 }
 
+/// Legacy source-inclusion compatibility alias, retained through all 0.x releases.
+#[allow(dead_code)]
+pub type BsecError = BitbidError;
+
 // This classification is additive; legacy process exits remain independent.
-impl From<&BsecError> for bitbid_core::ErrorKind {
-    fn from(error: &BsecError) -> Self {
+impl From<&BitbidError> for bitbid_core::ErrorKind {
+    fn from(error: &BitbidError) -> Self {
         match error {
-            BsecError::InvalidPassword => Self::Wallet,
-            BsecError::WalletNotFound | BsecError::SecretNotFound(_) => Self::NotFound,
-            BsecError::SecretExpired | BsecError::PermissionDenied(_) | BsecError::Generic(_) => {
+            BitbidError::InvalidPassword => Self::Wallet,
+            BitbidError::WalletNotFound | BitbidError::SecretNotFound(_) => Self::NotFound,
+            BitbidError::SecretExpired | BitbidError::PermissionDenied(_) | BitbidError::Generic(_) => {
                 Self::Secret
             }
-            BsecError::InvalidMnemonic(_) | BsecError::InvalidRecipient(_) => Self::Invalid,
-            BsecError::IoError(_) => Self::Store,
-            BsecError::ParseError(_) => Self::Decode,
-            BsecError::ConfigError(_) => Self::Config,
-            BsecError::CryptoError(_) => Self::Crypto,
+            BitbidError::InvalidMnemonic(_) | BitbidError::InvalidRecipient(_) => Self::Invalid,
+            BitbidError::IoError(_) => Self::Store,
+            BitbidError::ParseError(_) => Self::Decode,
+            BitbidError::ConfigError(_) => Self::Config,
+            BitbidError::CryptoError(_) => Self::Crypto,
         }
     }
 }
@@ -94,28 +98,51 @@ pub fn fallback_exit_code(message: &str) -> i32 {
 }
 
 #[allow(dead_code)]
-pub type Result<T> = std::result::Result<T, BsecError>;
+pub type Result<T> = std::result::Result<T, BitbidError>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    fn legacy_alias_preserves_variants_results_conversions_and_downcasts() {
+        fn legacy_result(error: BsecError) -> Result<()> {
+            Err(error)
+        }
+        let legacy: BsecError = BsecError::InvalidRecipient("recipient".into());
+        let canonical: BitbidError = legacy;
+        let result = legacy_result(canonical);
+        let erased = anyhow::Error::new(result.unwrap_err());
+        assert!(matches!(
+            erased.downcast_ref::<BsecError>(),
+            Some(BsecError::InvalidRecipient(_))
+        ));
+        assert!(matches!(
+            erased.downcast_ref::<BitbidError>(),
+            Some(BitbidError::InvalidRecipient(_))
+        ));
+        let converted: BsecError = std::io::Error::other("synthetic").into();
+        assert!(matches!(converted, BitbidError::IoError(_)));
+        assert_eq!(converted.exit_code(), 4);
+        assert_eq!(bitbid_core::ErrorKind::from(&converted), bitbid_core::ErrorKind::Store);
+    }
+
+    #[test]
     fn legacy_exit_and_additive_kind_table() {
         use bitbid_core::ErrorKind as K;
         for (error, code, kind) in [
-            (BsecError::WalletNotFound, 1, K::NotFound),
-            (BsecError::InvalidPassword, 2, K::Wallet),
-            (BsecError::SecretNotFound("id".into()), 3, K::NotFound),
-            (BsecError::SecretExpired, 3, K::Secret),
-            (BsecError::PermissionDenied("denied".into()), 3, K::Secret),
-            (BsecError::InvalidMnemonic("mnem".into()), 5, K::Invalid),
-            (BsecError::InvalidRecipient("recip".into()), 5, K::Invalid),
-            (BsecError::CryptoError("crypto".into()), 1, K::Crypto),
-            (BsecError::IoError(std::io::Error::other("io")), 4, K::Store),
-            (BsecError::ParseError("parse".into()), 4, K::Decode),
-            (BsecError::ConfigError("cfg".into()), 4, K::Config),
-            (BsecError::Generic("gen".into()), 1, K::Secret),
+            (BitbidError::WalletNotFound, 1, K::NotFound),
+            (BitbidError::InvalidPassword, 2, K::Wallet),
+            (BitbidError::SecretNotFound("id".into()), 3, K::NotFound),
+            (BitbidError::SecretExpired, 3, K::Secret),
+            (BitbidError::PermissionDenied("denied".into()), 3, K::Secret),
+            (BitbidError::InvalidMnemonic("mnem".into()), 5, K::Invalid),
+            (BitbidError::InvalidRecipient("recip".into()), 5, K::Invalid),
+            (BitbidError::CryptoError("crypto".into()), 1, K::Crypto),
+            (BitbidError::IoError(std::io::Error::other("io")), 4, K::Store),
+            (BitbidError::ParseError("parse".into()), 4, K::Decode),
+            (BitbidError::ConfigError("cfg".into()), 4, K::Config),
+            (BitbidError::Generic("gen".into()), 1, K::Secret),
         ] {
             assert_eq!(error.exit_code(), code);
             assert_eq!(K::from(&error), kind);

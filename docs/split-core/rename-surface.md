@@ -1,5 +1,12 @@
 # Rename surface and back-compat plan: `bsec` → `bitbid`
 
+> Historical decision/inventory at `6a0ffb8`. Current production paths, completed
+> topology/package work, exact rename/error/alias/write policy and N2–N5 criteria
+> are in [rename execution](rename-execution.md) and [acceptance](rename-acceptance.md),
+> which supersede execution details here. Accepted #13 no-binary-alias and
+> 0.x/until-1.0 compatibility rulings remain. The 668-occurrence inventory is
+> historical; distribution URLs/names below do not prove publication.
+
 This document records the ruling from wayfinder ticket #13: the complete surface
 of identifiers that change in the `bsec` → `bitbid` rename, the identifiers that
 must **not** change, the back-compat/deprecation strategy, and a

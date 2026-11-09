@@ -1,3 +1,6 @@
+> Historical design/tutorial record. Old names and topology below are retained for provenance.
+> Current commands, compatibility and delivery: [cutover](../rename-cutover.md).
+
 # BSEC Secret Manager - Building from Scratch Guide
 
 Welcome to the comprehensive, step-by-step master guide for building **`bsec`** (Blockchain Secret Manager) from scratch.

@@ -2,8 +2,8 @@
 //!
 //! Target Modules: `src/wallet.rs`, `src/main.rs`, `src/errors.rs`
 //! Flow Tested:
-//!   - Wallet initialization from BIP-39 mnemonic phrases (`bsec init --import-mnemonic`)
-//!   - Password-protected wallet initialization & info inspection (`bsec wallet info --password`)
+//!   - Wallet initialization from BIP-39 mnemonic phrases (`bitbid init --import-mnemonic`)
+//!   - Password-protected wallet initialization & info inspection (`bitbid wallet info --password`)
 //!   - Typed exit status code 2 verification on invalid wallet passwords
 
 use assert_cmd::prelude::*;
@@ -12,16 +12,16 @@ use std::process::Command;
 
 /// Tests wallet initialization from a known 12-word BIP-39 mnemonic phrase.
 /// Target File: `src/wallet.rs` -> `init_wallet()`
-/// Flow: `bsec init --import-mnemonic "<mnemonic>" --overwrite`
+/// Flow: `bitbid init --import-mnemonic "<mnemonic>" --overwrite`
 #[test]
 fn test_wallet_init_mnemonic() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
 
     let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
-    let mut cmd = Command::cargo_bin("bsec")?;
+    let mut cmd = Command::cargo_bin("bitbid")?;
     cmd.current_dir(temp_dir.path());
-    cmd.env("BSEC_HOME", temp_dir.path());
+    cmd.env("BITBID_HOME", temp_dir.path());
     cmd.arg("init")
         .arg("--import-mnemonic")
         .arg(mnemonic)
@@ -37,14 +37,14 @@ fn test_wallet_init_mnemonic() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Tests password-protected wallet creation and info command parsing.
 /// Target File: `src/wallet.rs` -> `get_wallet_info()`
-/// Flow: `bsec init --password <pass>` -> `bsec wallet info --password <pass>`
+/// Flow: `bitbid init --password <pass>` -> `bitbid wallet info --password <pass>`
 #[test]
 fn test_password_protected_wallet_creation_and_info() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
 
-    let mut cmd_init = Command::cargo_bin("bsec")?;
+    let mut cmd_init = Command::cargo_bin("bitbid")?;
     cmd_init.current_dir(temp_dir.path());
-    cmd_init.env("BSEC_HOME", temp_dir.path());
+    cmd_init.env("BITBID_HOME", temp_dir.path());
     cmd_init
         .arg("init")
         .arg("--overwrite")
@@ -52,9 +52,9 @@ fn test_password_protected_wallet_creation_and_info() -> Result<(), Box<dyn std:
         .arg("secret_wallet_pass_123");
     cmd_init.assert().success();
 
-    let mut cmd_info = Command::cargo_bin("bsec")?;
+    let mut cmd_info = Command::cargo_bin("bitbid")?;
     cmd_info.current_dir(temp_dir.path());
-    cmd_info.env("BSEC_HOME", temp_dir.path());
+    cmd_info.env("BITBID_HOME", temp_dir.path());
     cmd_info
         .arg("wallet")
         .arg("info")
@@ -72,14 +72,14 @@ fn test_password_protected_wallet_creation_and_info() -> Result<(), Box<dyn std:
 
 /// Tests typed exit code status 2 when an invalid password is provided to unlock a wallet.
 /// Target File: `src/main.rs` -> `handle_cli_error()` & `src/errors.rs` -> `BsecError::InvalidPassword`
-/// Flow: `bsec wallet info --password wrong_pass` -> asserts process exit code 2
+/// Flow: `bitbid wallet info --password wrong_pass` -> asserts process exit code 2
 #[test]
 fn test_invalid_password_exit_code_2() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
 
-    let mut cmd_init = Command::cargo_bin("bsec")?;
+    let mut cmd_init = Command::cargo_bin("bitbid")?;
     cmd_init.current_dir(temp_dir.path());
-    cmd_init.env("BSEC_HOME", temp_dir.path());
+    cmd_init.env("BITBID_HOME", temp_dir.path());
     cmd_init
         .arg("init")
         .arg("--overwrite")
@@ -87,9 +87,9 @@ fn test_invalid_password_exit_code_2() -> Result<(), Box<dyn std::error::Error>>
         .arg("correct_pass");
     cmd_init.assert().success();
 
-    let mut cmd_info = Command::cargo_bin("bsec")?;
+    let mut cmd_info = Command::cargo_bin("bitbid")?;
     cmd_info.current_dir(temp_dir.path());
-    cmd_info.env("BSEC_HOME", temp_dir.path());
+    cmd_info.env("BITBID_HOME", temp_dir.path());
     cmd_info
         .arg("wallet")
         .arg("info")
@@ -101,25 +101,25 @@ fn test_invalid_password_exit_code_2() -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-/// Tests bsec wallet export subcommand and explicit info flags.
+/// Tests bitbid wallet export subcommand and explicit info flags.
 /// Target File: `src/main.rs` -> `WalletCommands::Export`
-/// Flow: `bsec wallet export` -> verifies Private Key and Mnemonic are output
+/// Flow: `bitbid wallet export` -> verifies Private Key and Mnemonic are output
 #[test]
 fn test_wallet_export_command() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
 
-    let mut cmd_init = Command::cargo_bin("bsec")?;
+    let mut cmd_init = Command::cargo_bin("bitbid")?;
     cmd_init.current_dir(temp_dir.path());
-    cmd_init.env("BSEC_HOME", temp_dir.path());
+    cmd_init.env("BITBID_HOME", temp_dir.path());
     cmd_init
         .arg("init")
         .arg("--overwrite")
         .arg("--no-encryption");
     cmd_init.assert().success();
 
-    let mut cmd_export = Command::cargo_bin("bsec")?;
+    let mut cmd_export = Command::cargo_bin("bitbid")?;
     cmd_export.current_dir(temp_dir.path());
-    cmd_export.env("BSEC_HOME", temp_dir.path());
+    cmd_export.env("BITBID_HOME", temp_dir.path());
     cmd_export
         .arg("wallet")
         .arg("export");

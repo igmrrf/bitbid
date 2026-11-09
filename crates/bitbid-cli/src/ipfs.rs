@@ -18,12 +18,12 @@ use crate::network_config::NetworkConfig;
 
 const IPFS_TIMEOUT_SECS: u64 = 15;
 
-pub fn get_ipfs_cache_dir() -> PathBuf {
-    let dir = crate::wallet::get_app_dir().join("ipfs_cache");
+pub fn get_ipfs_cache_dir() -> Result<PathBuf> {
+    let dir = crate::wallet::get_app_dir()?.join("ipfs_cache");
     if !dir.exists() {
         let _ = fs::create_dir_all(&dir);
     }
-    dir
+    Ok(dir)
 }
 
 fn client() -> Result<Client> {
@@ -33,12 +33,22 @@ fn client() -> Result<Client> {
         .map_err(|e| anyhow!("failed to build IPFS HTTP client: {}", e))
 }
 
-fn resolve_pinning_jwt(conf: &NetworkConfig) -> Option<String> {
-    conf.ipfs
-        .pinning_jwt
-        .clone()
-        .filter(|s| !s.trim().is_empty())
-        .or_else(|| std::env::var("BSEC_PINATA_JWT").ok().filter(|s| !s.trim().is_empty()))
+pub(crate) fn resolve_pinning_jwt(conf: &NetworkConfig) -> Result<Option<String>> {
+    let selected = if let Some(value) = conf.ipfs.pinning_jwt.as_ref().filter(|s| !s.trim().is_empty()) {
+        Some(value.clone())
+    } else {
+        crate::compat::env_pair("BITBID_PINATA_JWT", "BSEC_PINATA_JWT")
+            .map(|value| value.into_string().map_err(|_| crate::compat::error("invalid Pinata credential.")))
+            .transpose()?
+    };
+    let Some(value) = selected.filter(|s| !s.trim().is_empty()) else { return Ok(None); };
+    // Validate the actual bearer header boundary before constructing/sending a request.
+    if value.bytes().any(|byte| byte.is_ascii_control()) {
+        return Err(crate::compat::error("invalid Pinata credential."));
+    }
+    reqwest::header::HeaderValue::from_str(&format!("Bearer {value}"))
+        .map_err(|_| crate::compat::error("invalid Pinata credential."))?;
+    Ok(Some(value))
 }
 
 /// Accept only well-formed CID strings: length in 2..=64 and every byte
@@ -53,16 +63,17 @@ fn valid_cid(cid: &str) -> bool {
 /// path is ALWAYS contained within the cache dir, even if `valid_cid` is ever
 /// bypassed. Both write (upload) and read (fetch) MUST use this same
 /// derivation so the same CID maps to the same file.
-fn cache_file_for(cid: &str) -> PathBuf {
-    get_ipfs_cache_dir().join(format!(
+fn cache_file_for(cid: &str) -> Result<PathBuf> {
+    Ok(get_ipfs_cache_dir()?.join(format!(
         "{}.json",
         crate::wallet::bytes_to_hex(&crate::wallet::hash_digest(cid.as_bytes()))
-    ))
+    )))
 }
 
-fn cache_payload(cid: &str, payload_json: &str) {
-    let cache_file = cache_file_for(cid);
+fn cache_payload(cid: &str, payload_json: &str) -> Result<()> {
+    let cache_file = cache_file_for(cid)?;
     let _ = crate::wallet::write_secure_file(&cache_file, payload_json.as_bytes());
+    Ok(())
 }
 
 fn pin_via_pinata(client: &Client, jwt: &str, payload_json: &str) -> Result<String> {
@@ -109,17 +120,18 @@ fn add_via_kubo(client: &Client, api_url: &str, payload_json: &str) -> Result<St
 
 /// Upload a payload to IPFS. Returns a real CID. Errors if no backend is reachable.
 pub fn upload_to_ipfs(payload_json: &str) -> Result<String> {
-    let conf = crate::network_config::load_network_config();
+    let conf = crate::network_config::load_network_config()?;
+    let jwt = resolve_pinning_jwt(&conf)?;
     let client = client()?;
 
     // 1. Hosted pinning (Pinata) if a JWT is configured — persists across machines.
-    if let Some(jwt) = resolve_pinning_jwt(&conf) {
+    if let Some(jwt) = jwt {
         match pin_via_pinata(&client, &jwt, payload_json) {
             Ok(cid) => {
                 if !valid_cid(&cid) {
                     return Err(anyhow!("invalid IPFS CID {:?}", cid));
                 }
-                cache_payload(&cid, payload_json);
+                cache_payload(&cid, payload_json)?;
                 return Ok(cid);
             }
             Err(e) => log::warn!("Pinata pinning failed, trying local IPFS daemon: {}", e),
@@ -132,12 +144,12 @@ pub fn upload_to_ipfs(payload_json: &str) -> Result<String> {
             if !valid_cid(&cid) {
                 return Err(anyhow!("invalid IPFS CID {:?}", cid));
             }
-            cache_payload(&cid, payload_json);
+            cache_payload(&cid, payload_json)?;
             Ok(cid)
         }
         Err(e) => Err(anyhow!(
             "No IPFS backend available. Configure a Pinata JWT (ipfs.pinning_jwt or \
-             BSEC_PINATA_JWT) or run a local IPFS daemon reachable at {}. Last error: {}",
+             BITBID_PINATA_JWT) or run a local IPFS daemon reachable at {}. Last error: {}",
             conf.ipfs.api_url,
             e
         )),
@@ -160,11 +172,11 @@ pub fn fetch_from_ipfs(cid: &str) -> Result<String> {
         return Err(anyhow!("invalid IPFS CID {:?}", cid));
     }
 
-    let conf = crate::network_config::load_network_config();
+    let conf = crate::network_config::load_network_config()?;
 
     // 1. Local cache. Path is hash-derived so it is always contained in the
     //    cache dir regardless of the CID contents.
-    let cache_file = cache_file_for(cid);
+    let cache_file = cache_file_for(cid)?;
     if let Ok(cached) = fs::read_to_string(&cache_file) {
         return Ok(cached);
     }
@@ -207,6 +219,13 @@ pub fn fetch_from_ipfs(cid: &str) -> Result<String> {
 }
 
 #[cfg(test)]
+pub(super) fn assert_cache_file_containment() {
+    let malicious = "/etc/passwd";
+    let path = cache_file_for(malicious).unwrap();
+    assert!(path.starts_with(get_ipfs_cache_dir().unwrap()), "hash-derived cache path escaped cache dir");
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -237,12 +256,7 @@ mod tests {
 
     #[test]
     fn cache_file_for_stays_inside_cache_dir() {
-        let malicious = "/etc/passwd";
-        let path = cache_file_for(malicious);
-        assert!(
-            path.starts_with(get_ipfs_cache_dir()),
-            "hash-derived cache path {:?} escaped cache dir",
-            path
-        );
+        // Run the resolver boundary in an isolated process: never select the test user's home.
+        crate::compatibility_tests::cache_path_fixture();
     }
 }

@@ -1,6 +1,11 @@
+> Prospective packaging template only. This channel has not been published or verified.
+> Package names, registry namespaces, taps, URLs, hashes and workflows below require
+> separate selection, validation and publication authorization. Do not use the
+> illustrated installation commands as available releases. Use [source installation](cargo.md).
+
 # Windows Package Managers Guide (Winget, Chocolatey, Scoop)
 
-This guide covers distributing `bsec` across popular Windows package management systems: **Winget** (official Windows Package Manager), **Chocolatey**, and **Scoop**.
+This guide covers distributing `bitbid` across popular Windows package management systems: **Winget** (official Windows Package Manager), **Chocolatey**, and **Scoop**.
 
 ---
 
@@ -17,25 +22,25 @@ winget install Microsoft.WingetCreate
 ### Step 2: Generate Winget Manifest
 
 ```powershell
-wingetcreate new https://github.com/igmrrf/bsec/releases/download/v0.1.0/bsec-windows-x86_64.zip
+wingetcreate new <VERIFIED_RELEASE_ASSET_URL>
 ```
 
-### Step 3: Sample Winget Manifest (`igmrrf.bsec.yaml`)
+### Step 3: Sample Winget Manifest (`igmrrf.bitbid.yaml`)
 
 ```yaml
-PackageIdentifier: igmrrf.bsec
+PackageIdentifier: igmrrf.bitbid
 PackageVersion: 0.1.0
-PackageName: bsec
+PackageName: bitbid
 Publisher: Francis Igbiriki
 License: MIT
 ShortDescription: Secure CLI tool to manage and encrypt environment variables
 Installers:
   - Architecture: x64
     InstallerType: zip
-    InstallerUrl: https://github.com/igmrrf/bsec/releases/download/v0.1.0/bsec-windows-x86_64.zip
+    InstallerUrl: <VERIFIED_RELEASE_ASSET_URL>
     InstallerSha256: <CALCULATED_SHA256>
     NestedInstallerFiles:
-      - RelativeFilePath: bsec.exe
+      - RelativeFilePath: bitbid.exe
 ManifestType: singleton
 ManifestVersion: 1.6.0
 ```
@@ -43,7 +48,7 @@ ManifestVersion: 1.6.0
 ### User Installation Test:
 
 ```powershell
-winget install igmrrf.bsec
+winget install igmrrf.bitbid
 ```
 
 ---
@@ -52,21 +57,21 @@ winget install igmrrf.bsec
 
 Chocolatey packages are built as `.nupkg` archives and pushed to [chocolatey.org](https://community.chocolatey.org/).
 
-### Step 1: Create Package Specification (`bsec.nuspec`)
+### Step 1: Create Package Specification (`bitbid.nuspec`)
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
-    <id>bsec</id>
+    <id>bitbid</id>
     <version>0.1.0</version>
-    <title>bsec CLI</title>
+    <title>bitbid CLI</title>
     <authors>Francis Igbiriki</authors>
-    <projectUrl>https://github.com/igmrrf/bsec</projectUrl>
-    <licenseUrl>https://github.com/igmrrf/bsec/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/igmrrf/clienv</projectUrl>
+    <licenseUrl>https://github.com/igmrrf/clienv/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Secure CLI tool to manage and encrypt environment variables</description>
-    <summary>bsec CLI env management tool</summary>
+    <summary>bitbid CLI env management tool</summary>
     <tags>cli env security encryption rust</tags>
   </metadata>
   <files>
@@ -79,7 +84,7 @@ Chocolatey packages are built as `.nupkg` archives and pushed to [chocolatey.org
 
 ```powershell
 choco pack
-choco push bsec.0.1.0.nupkg --api-key <YOUR_CHOCO_API_KEY>
+choco push bitbid.0.1.0.nupkg --api-key <YOUR_CHOCO_API_KEY>
 ```
 
 ---
@@ -90,26 +95,26 @@ Scoop enables non-admin, portable Windows installations via custom buckets.
 
 ### Step 1: Create Scoop Bucket Repository
 
-Create a GitHub repo named `scoop-bucket` containing `bucket/bsec.json`:
+Create a GitHub repo named `scoop-bucket` containing `bucket/bitbid.json`:
 
 ```json
 {
     "version": "0.1.0",
     "description": "Secure CLI tool to manage and encrypt environment variables",
-    "homepage": "https://github.com/igmrrf/bsec",
+    "homepage": "https://github.com/igmrrf/clienv",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/igmrrf/bsec/releases/download/v0.1.0/bsec-windows-x86_64.zip",
+            "url": "<VERIFIED_RELEASE_ASSET_URL>",
             "hash": "<CALCULATED_SHA256>"
         }
     },
-    "bin": "bsec.exe",
+    "bin": "bitbid.exe",
     "checkver": "github",
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/igmrrf/bsec/releases/download/v$version/bsec-windows-x86_64.zip"
+                "url": "<VERIFIED_RELEASE_ASSET_URL>"
             }
         }
     }
@@ -120,5 +125,5 @@ Create a GitHub repo named `scoop-bucket` containing `bucket/bsec.json`:
 
 ```powershell
 scoop bucket add igmrrf https://github.com/igmrrf/scoop-bucket
-scoop install bsec
+scoop install bitbid
 ```

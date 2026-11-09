@@ -26,10 +26,10 @@ fn cli_opens_shared_frozen_token_without_wallet_or_network() {
     ] {
         let token = tmp.path().join("input.txt");
         std::fs::write(&token, input).unwrap();
-        let output = Command::cargo_bin("bsec")
+        let output = Command::cargo_bin("bitbid")
             .unwrap()
             .current_dir(tmp.path())
-            .env("BSEC_HOME", tmp.path().join("unused-wallet"))
+            .env("BITBID_HOME", tmp.path().join("unused-wallet"))
             .args(["unseal", "--input"])
             .arg(&token)
             .arg("--key-file")
@@ -51,7 +51,7 @@ fn cli_emits_random_shared_tokens_from_stdin_and_rejects_wrong_key() {
     let tmp = assert_fs::TempDir::new().unwrap();
     let mut tokens = vec![];
     for _ in 0..2 {
-        let mut child = Command::cargo_bin("bsec")
+        let mut child = Command::cargo_bin("bitbid")
             .unwrap()
             .current_dir(tmp.path())
             .args(["seal", "--to", v["recipient_public_hex"].as_str().unwrap()])
@@ -81,7 +81,7 @@ fn cli_emits_random_shared_tokens_from_stdin_and_rejects_wrong_key() {
     std::fs::write(&input, &tokens[0]).unwrap();
     let key = tmp.path().join("wrong-key.txt");
     std::fs::write(&key, format!("{}03", "00".repeat(31))).unwrap();
-    let output = Command::cargo_bin("bsec")
+    let output = Command::cargo_bin("bitbid")
         .unwrap()
         .current_dir(tmp.path())
         .arg("unseal")
@@ -128,10 +128,10 @@ fn cli_rejects_malformed_tokens_and_keys_without_stdout_or_wallet() {
     ] {
         std::fs::write(&token_path, input).unwrap();
         std::fs::write(&key_path, key).unwrap();
-        let output = Command::cargo_bin("bsec")
+        let output = Command::cargo_bin("bitbid")
             .unwrap()
             .current_dir(tmp.path())
-            .env("BSEC_HOME", &wallet)
+            .env("BITBID_HOME", &wallet)
             .args(["unseal", "--input"])
             .arg(&token_path)
             .arg("--key-file")
@@ -144,10 +144,10 @@ fn cli_rejects_malformed_tokens_and_keys_without_stdout_or_wallet() {
         assert!(!output.stderr.is_empty());
         assert!(!wallet.exists());
     }
-    let output = Command::cargo_bin("bsec")
+    let output = Command::cargo_bin("bitbid")
         .unwrap()
         .current_dir(tmp.path())
-        .env("BSEC_HOME", &wallet)
+        .env("BITBID_HOME", &wallet)
         .args(["seal", "--to", "invalid-public-key"])
         .stdin(Stdio::null())
         .output()

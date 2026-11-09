@@ -3,7 +3,7 @@
 //! Target Modules: `src/env_file.rs`, `src/wallet.rs`, `src/main.rs`
 //! Flow Tested:
 //!   - End-to-end `.env` file encryption and decryption using `.env.pass` key files
-//!   - File encryption (`bsec encrypt`) & decryption (`bsec decrypt`) using explicit `--password` CLI flags
+//!   - File encryption (`bitbid encrypt`) & decryption (`bitbid decrypt`) using explicit `--password` CLI flags
 //!   - Enforcing restricted `0o600` permissions (`rw-------`) on decrypted `.env` output files
 
 use assert_cmd::prelude::*;
@@ -12,7 +12,7 @@ use std::process::Command;
 
 /// Tests file-level encryption and decryption using password files (.env.pass).
 /// Target File: `src/env_file.rs` -> `encrypt_env_file()`, `decrypt_env_file()`
-/// Flow: `echo <pass> > .env.pass` -> `bsec encrypt .env` -> `bsec decrypt .env.enc`
+/// Flow: `echo <pass> > .env.pass` -> `bitbid encrypt .env` -> `bitbid decrypt .env.enc`
 #[test]
 fn test_file_encrypt_decrypt_with_pass_file() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
@@ -24,7 +24,7 @@ fn test_file_encrypt_decrypt_with_pass_file() -> Result<(), Box<dyn std::error::
     env_file.write_str("SECRET_API_KEY=1234567890\n")?;
 
     // 1. Encrypt
-    let mut cmd_enc = Command::cargo_bin("bsec")?;
+    let mut cmd_enc = Command::cargo_bin("bitbid")?;
     cmd_enc.current_dir(temp_dir.path());
     cmd_enc.arg("encrypt").arg(env_file.path());
     cmd_enc.assert().success();
@@ -34,7 +34,7 @@ fn test_file_encrypt_decrypt_with_pass_file() -> Result<(), Box<dyn std::error::
 
     // 2. Decrypt
     let dec_path = temp_dir.path().join(".env.dec");
-    let mut cmd_dec = Command::cargo_bin("bsec")?;
+    let mut cmd_dec = Command::cargo_bin("bitbid")?;
     cmd_dec.current_dir(temp_dir.path());
     cmd_dec
         .arg("decrypt")
@@ -52,7 +52,7 @@ fn test_file_encrypt_decrypt_with_pass_file() -> Result<(), Box<dyn std::error::
 
 /// Tests file-level encryption and decryption using explicit `--password` command-line flags.
 /// Target File: `src/env_file.rs` -> `encrypt_env_file()`, `decrypt_env_file()` with `--password`
-/// Flow: `bsec encrypt .env --password <pass>` -> `bsec decrypt .env.enc --password <pass>`
+/// Flow: `bitbid encrypt .env --password <pass>` -> `bitbid decrypt .env.enc --password <pass>`
 #[test]
 fn test_file_encryption_decryption_with_cli_password() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = assert_fs::TempDir::new()?;
@@ -63,8 +63,8 @@ fn test_file_encryption_decryption_with_cli_password() -> Result<(), Box<dyn std
     let dec_file = temp_dir.child(".env.secret.dec");
 
     // Encrypt with --password flag
-    let mut cmd_enc = Command::cargo_bin("bsec")?;
-    cmd_enc.env("BSEC_HOME", temp_dir.path());
+    let mut cmd_enc = Command::cargo_bin("bitbid")?;
+    cmd_enc.env("BITBID_HOME", temp_dir.path());
     cmd_enc
         .arg("encrypt")
         .arg(env_file.path())
@@ -77,8 +77,8 @@ fn test_file_encryption_decryption_with_cli_password() -> Result<(), Box<dyn std
     assert!(enc_file.path().exists());
 
     // Decrypt with --password flag
-    let mut cmd_dec = Command::cargo_bin("bsec")?;
-    cmd_dec.env("BSEC_HOME", temp_dir.path());
+    let mut cmd_dec = Command::cargo_bin("bitbid")?;
+    cmd_dec.env("BITBID_HOME", temp_dir.path());
     cmd_dec
         .arg("decrypt")
         .arg(enc_file.path())
@@ -96,7 +96,7 @@ fn test_file_encryption_decryption_with_cli_password() -> Result<(), Box<dyn std
 
 /// Tests that decrypted output files are written with restricted 0o600 (owner-only rw) permissions on UNIX platforms.
 /// Target File: `src/env_file.rs` -> `decrypt_env_file()` with `write_secure_file()`
-/// Flow: `bsec decrypt` -> metadata mode inspection (`permissions.mode() & 0o777 == 0o600`)
+/// Flow: `bitbid decrypt` -> metadata mode inspection (`permissions.mode() & 0o777 == 0o600`)
 #[cfg(unix)]
 #[test]
 fn test_decrypted_file_permissions() -> Result<(), Box<dyn std::error::Error>> {
@@ -110,8 +110,8 @@ fn test_decrypted_file_permissions() -> Result<(), Box<dyn std::error::Error>> {
     let dec_file = temp_dir.child(".env.test_perm.dec");
 
     // 1. Encrypt
-    let mut cmd_enc = Command::cargo_bin("bsec")?;
-    cmd_enc.env("BSEC_HOME", temp_dir.path());
+    let mut cmd_enc = Command::cargo_bin("bitbid")?;
+    cmd_enc.env("BITBID_HOME", temp_dir.path());
     cmd_enc
         .arg("encrypt")
         .arg(env_file.path())
@@ -122,8 +122,8 @@ fn test_decrypted_file_permissions() -> Result<(), Box<dyn std::error::Error>> {
     cmd_enc.assert().success();
 
     // 2. Decrypt
-    let mut cmd_dec = Command::cargo_bin("bsec")?;
-    cmd_dec.env("BSEC_HOME", temp_dir.path());
+    let mut cmd_dec = Command::cargo_bin("bitbid")?;
+    cmd_dec.env("BITBID_HOME", temp_dir.path());
     cmd_dec
         .arg("decrypt")
         .arg(enc_file.path())

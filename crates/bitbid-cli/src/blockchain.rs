@@ -98,40 +98,48 @@ struct IndexEntry {
 
 type Index = BTreeMap<String, IndexEntry>;
 
-fn index_path() -> PathBuf {
-    crate::wallet::get_app_dir().join("secret_index.json")
+fn index_path() -> Result<PathBuf> {
+    Ok(crate::wallet::get_app_dir()?.join("secret_index.json"))
 }
 
-fn load_index() -> Index {
-    match fs::read_to_string(index_path()) {
+fn load_index() -> Result<Index> {
+    Ok(match fs::read_to_string(index_path()?) {
         Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
         Err(_) => Index::new(),
-    }
+    })
 }
 
 fn save_index(index: &Index) -> Result<()> {
     let content = serde_json::to_string_pretty(index)?;
-    crate::wallet::write_secure_file(&index_path(), content.as_bytes())
+    crate::wallet::write_secure_file(&index_path()?, content.as_bytes())
 }
 
 /// Record that this wallet knows about a secret (created or received), for `list`.
-pub fn index_note(secret_id: &str, role: &str) {
-    let mut index = load_index();
+pub fn index_note(secret_id: &str, role: &str) -> Result<()> {
+    let mut index = load_index()?;
     let entry = index.entry(secret_id.to_string()).or_default();
     if entry.role.is_empty() {
         entry.role = role.to_string();
     }
-    let _ = save_index(&index);
+    if let Err(error) = save_index(&index)
+        && matches!(error.downcast_ref::<crate::errors::BitbidError>(), Some(crate::errors::BitbidError::ConfigError(_))) {
+        return Err(error);
+    }
+    Ok(())
 }
 
-fn index_set_hidden(secret_id: &str, hidden: bool) {
-    let mut index = load_index();
+fn index_set_hidden(secret_id: &str, hidden: bool) -> Result<()> {
+    let mut index = load_index()?;
     index.entry(secret_id.to_string()).or_default().hidden = hidden;
-    let _ = save_index(&index);
+    if let Err(error) = save_index(&index)
+        && matches!(error.downcast_ref::<crate::errors::BitbidError>(), Some(crate::errors::BitbidError::ConfigError(_))) {
+        return Err(error);
+    }
+    Ok(())
 }
 
-fn index_is_hidden(secret_id: &str) -> bool {
-    load_index().get(secret_id).map(|e| e.hidden).unwrap_or(false)
+fn index_is_hidden(secret_id: &str) -> Result<bool> {
+    Ok(load_index()?.get(secret_id).map(|e| e.hidden).unwrap_or(false))
 }
 
 // ---------------------------------------------------------------------------
@@ -148,17 +156,17 @@ pub fn register_secret_on_chain(
     max_reads: u32,
     is_public: bool,
 ) -> Result<String> {
-    let conf = load_network_config();
+    let conf = load_network_config()?;
     let to = registry_address(&conf)?;
     let id32 = encode_bytes32_hex(secret_id)?;
     let data = eth::encode_share_secret(&id32, recipient_addr, ipfs_cid, expires_at, max_reads, is_public);
     let tx_hash = eth::send_contract_tx(&conf, priv_bytes, &to, &data)?;
-    index_note(secret_id, "sender");
+    index_note(secret_id, "sender")?;
     Ok(tx_hash)
 }
 
 pub fn get_secret_info_on_chain(secret_id: &str) -> Result<OnChainSecretInfo> {
-    let conf = load_network_config();
+    let conf = load_network_config()?;
     let to = registry_address(&conf)?;
     let id32 = encode_bytes32_hex(secret_id)?;
     let data = eth::encode_bytes32_call("getSecretInfo(bytes32)", &id32);
@@ -189,12 +197,12 @@ pub fn get_secret_info_on_chain(secret_id: &str) -> Result<OnChainSecretInfo> {
         is_public: d.is_public,
         is_expired: d.is_expired,
         limit_reached: d.limit_reached,
-        hidden: index_is_hidden(secret_id),
+        hidden: index_is_hidden(secret_id)?,
     })
 }
 
 pub fn record_read_on_chain(priv_bytes: &[u8], secret_id: &str) -> Result<()> {
-    let conf = load_network_config();
+    let conf = load_network_config()?;
     let to = registry_address(&conf)?;
     let id32 = encode_bytes32_hex(secret_id)?;
     let data = eth::encode_bytes32_call("recordRead(bytes32)", &id32);
@@ -203,7 +211,7 @@ pub fn record_read_on_chain(priv_bytes: &[u8], secret_id: &str) -> Result<()> {
 }
 
 pub fn revoke_secret_on_chain(priv_bytes: &[u8], secret_id: &str) -> Result<()> {
-    let conf = load_network_config();
+    let conf = load_network_config()?;
     let to = registry_address(&conf)?;
     let id32 = encode_bytes32_hex(secret_id)?;
     let data = eth::encode_bytes32_call("revokeSecret(bytes32)", &id32);
@@ -213,8 +221,11 @@ pub fn revoke_secret_on_chain(priv_bytes: &[u8], secret_id: &str) -> Result<()> 
 
 /// Hide a secret locally (contract has no hidden state) and best-effort revoke on-chain.
 pub fn hide_secret_on_chain(priv_bytes: &[u8], secret_id: &str) -> Result<()> {
-    index_set_hidden(secret_id, true);
+    index_set_hidden(secret_id, true)?;
     if let Err(e) = revoke_secret_on_chain(priv_bytes, secret_id) {
+        if matches!(e.downcast_ref::<crate::errors::BitbidError>(), Some(crate::errors::BitbidError::ConfigError(_))) {
+            return Err(e);
+        }
         log::warn!(
             "On-chain revocation not performed for secret '{}' during hide (kept local hide): {}",
             secret_id,
@@ -258,13 +269,16 @@ fn list_secrets_with(
     active_only: bool,
     mut read: impl FnMut(&str) -> Result<OnChainSecretInfo>,
 ) -> Result<Vec<(String, OnChainSecretInfo)>> {
-    let index = load_index();
+    let index = load_index()?;
     let mut results = Vec::new();
 
     for (sec_id, entry) in index.iter() {
         let rec = match read(sec_id) {
             Ok(r) => r,
             Err(e) => {
+                if matches!(e.downcast_ref::<crate::errors::BitbidError>(), Some(crate::errors::BitbidError::ConfigError(_))) {
+                    return Err(e);
+                }
                 log::warn!("Skipping secret '{}' in listing (chain read failed): {}", sec_id, e);
                 continue;
             }

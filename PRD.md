@@ -1,3 +1,5 @@
+> Historical record; old names reflect the original version. For current installation and compatibility see [cutover](docs/rename-cutover.md).
+
 # BSEC - Blockchain-based Secret Sharing CLI Tool
 Product Requirements Document (Rust Version)
 

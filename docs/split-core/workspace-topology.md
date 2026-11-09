@@ -1,3 +1,6 @@
+> Historical design/tutorial record. Old names and topology below are retained for provenance.
+> Current commands, compatibility and delivery: [cutover](../rename-cutover.md).
+
 # Workspace topology and feature flags
 
 The [2026-11-08 rollout decision](migration-rollout.md#exact-topology-checkpoint-t)

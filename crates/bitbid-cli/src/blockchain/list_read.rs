@@ -13,7 +13,7 @@ use super::{OnChainSecretInfo, bytes_to_checksum_address, index_is_hidden, regis
 use crate::network_config::load_network_config;
 
 pub(super) fn read(secret_id: &str) -> Result<OnChainSecretInfo> {
-    let conf = load_network_config();
+    let conf = load_network_config()?;
     let registry = registry_address(&conf)?;
     let unused = Arc::new(UnusedForRegistryRead);
     let host = Host {
@@ -43,7 +43,7 @@ pub(super) fn read(secret_id: &str) -> Result<OnChainSecretInfo> {
         is_public: info.is_public,
         is_expired: info.is_expired,
         limit_reached: info.limit_reached,
-        hidden: index_is_hidden(secret_id),
+        hidden: index_is_hidden(secret_id)?,
     })
 }
 

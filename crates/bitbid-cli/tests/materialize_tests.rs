@@ -2,14 +2,14 @@
 //!
 //! Target Modules: `src/materialize.rs`, `src/secrets.rs`, `src/main.rs`
 //! Flow Tested:
-//!   - `bsec share --file <f> --as <kind>` -> `bsec materialize <id> --dir <d>` (bytes + 0600)
-//!   - `bsec share --bundle <manifest>` -> `bsec materialize <id> --dir <d>` (all members)
-//!   - `bsec run --secret <id> -- <cmd>` stages files and wipes the temp dir on exit
-//!   - `bsec materialize <id> --as schema` discloses key names but not values
+//!   - `bitbid share --file <f> --as <kind>` -> `bitbid materialize <id> --dir <d>` (bytes + 0600)
+//!   - `bitbid share --bundle <manifest>` -> `bitbid materialize <id> --dir <d>` (all members)
+//!   - `bitbid run --secret <id> -- <cmd>` stages files and wipes the temp dir on exit
+//!   - `bitbid materialize <id> --as schema` discloses key names but not values
 //!   - `--no-export` seals a secret against file materialization (terminal view still works)
 //!
 //! Like the other on-chain flows these need a deployed registry, a funded wallet, and an IPFS
-//! backend, so they are skipped unless `BSEC_E2E=1`. Provision with `scripts/e2e-setup.sh` and
+//! backend, so they are skipped unless `BITBID_E2E=1`. Provision with `scripts/e2e-setup.sh` and
 //! run with `--test-threads=1`.
 
 use assert_cmd::prelude::*;
@@ -18,7 +18,7 @@ use std::path::Path;
 use std::process::Command;
 
 fn e2e_enabled() -> bool {
-    std::env::var("BSEC_E2E").map(|v| v == "1").unwrap_or(false)
+    std::env::var("BITBID_E2E").map(|v| v == "1").unwrap_or(false)
 }
 
 macro_rules! require_e2e {
@@ -26,27 +26,27 @@ macro_rules! require_e2e {
         if !e2e_enabled() {
             eprintln!(
                 "SKIP: on-chain e2e. Use scripts/e2e-setup.sh to provision anvil + IPFS + a funded \
-                 wallet, then set BSEC_E2E=1 (run with --test-threads=1)."
+                 wallet, then set BITBID_E2E=1 (run with --test-threads=1)."
             );
             return Ok(());
         }
     };
 }
 
-fn bsec(home: &Path) -> Result<Command, Box<dyn std::error::Error>> {
-    let mut cmd = Command::cargo_bin("bsec")?;
+fn bitbid(home: &Path) -> Result<Command, Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("bitbid")?;
     cmd.current_dir(home);
-    cmd.env("BSEC_HOME", home);
+    cmd.env("BITBID_HOME", home);
     Ok(cmd)
 }
 
 fn init_wallet(home: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let mut cmd = bsec(home)?;
+    let mut cmd = bitbid(home)?;
     cmd.arg("init").arg("--overwrite").arg("--no-encryption");
     let out = cmd.output()?;
     assert!(out.status.success(), "wallet init failed");
     if e2e_enabled() {
-        // The e2e stack is shared but each test uses an isolated BSEC_HOME with a fresh wallet
+        // The e2e stack is shared but each test uses an isolated BITBID_HOME with a fresh wallet
         // and a default (non-local) network config. Point this home at the local anvil/IPFS
         // stack and fund the new wallet so its on-chain txs (share/read/revoke) succeed.
         let stdout = String::from_utf8_lossy(&out.stdout);
@@ -62,19 +62,19 @@ fn init_wallet(home: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Configure `home` for the local e2e stack and fund its wallet from anvil's unlocked account.
 /// Reads connection details from env so CI can inject them:
-///   BSEC_E2E_RPC (default http://localhost:8545), BSEC_E2E_REGISTRY (required),
-///   BSEC_E2E_IPFS_GATEWAY (default http://localhost:8080/ipfs/),
-///   BSEC_E2E_FUNDER (default anvil account #0).
+///   BITBID_E2E_RPC (default http://localhost:8545), BITBID_E2E_REGISTRY (required),
+///   BITBID_E2E_IPFS_GATEWAY (default http://localhost:8080/ipfs/),
+///   BITBID_E2E_FUNDER (default anvil account #0).
 fn provision_local(home: &Path, addr: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let rpc = std::env::var("BSEC_E2E_RPC").unwrap_or_else(|_| "http://localhost:8545".to_string());
-    let registry = std::env::var("BSEC_E2E_REGISTRY")
-        .expect("BSEC_E2E_REGISTRY must be set for e2e (the deployed BsecSecretRegistry address)");
-    let gateway = std::env::var("BSEC_E2E_IPFS_GATEWAY")
+    let rpc = std::env::var("BITBID_E2E_RPC").unwrap_or_else(|_| "http://localhost:8545".to_string());
+    let registry = std::env::var("BITBID_E2E_REGISTRY")
+        .expect("BITBID_E2E_REGISTRY must be set for e2e (the deployed BsecSecretRegistry address)");
+    let gateway = std::env::var("BITBID_E2E_IPFS_GATEWAY")
         .unwrap_or_else(|_| "http://localhost:8080/ipfs/".to_string());
-    let funder = std::env::var("BSEC_E2E_FUNDER")
+    let funder = std::env::var("BITBID_E2E_FUNDER")
         .unwrap_or_else(|_| "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string());
 
-    let mut cfg = bsec(home)?;
+    let mut cfg = bitbid(home)?;
     cfg.args([
         "config", "--network", "local", "--rpc", &rpc, "--registry", &registry,
         "--ipfs-gateway", &gateway,
@@ -122,7 +122,7 @@ fn test_materialize_single_pem_bytes_and_mode() -> Result<(), Box<dyn std::error
     let src = dir.path().join("cert.pem");
     std::fs::write(&src, pem_body)?;
 
-    let mut share = bsec(dir.path())?;
+    let mut share = bitbid(dir.path())?;
     share.args(["share", "--file"]).arg(&src);
     share.args(["--as", "pem", "--to", "public", "--ttl", "1h"]);
     let out = share.assert().success();
@@ -130,7 +130,7 @@ fn test_materialize_single_pem_bytes_and_mode() -> Result<(), Box<dyn std::error
     assert!(!id.is_empty());
 
     let out_dir = dir.path().join("materialized");
-    let mut mat = bsec(dir.path())?;
+    let mut mat = bitbid(dir.path())?;
     mat.arg("materialize").arg(&id).arg("--dir").arg(&out_dir);
     mat.assert()
         .success()
@@ -164,7 +164,7 @@ fn test_bundle_materialize_and_run_staging() -> Result<(), Box<dyn std::error::E
         ]}"#,
     )?;
 
-    let mut share = bsec(dir.path())?;
+    let mut share = bitbid(dir.path())?;
     share.arg("share").arg("--bundle").arg(&manifest);
     share.args(["--to", "public", "--ttl", "1h"]);
     let out = share.assert().success();
@@ -173,7 +173,7 @@ fn test_bundle_materialize_and_run_staging() -> Result<(), Box<dyn std::error::E
 
     // Materialize the whole bundle.
     let out_dir = dir.path().join("secrets");
-    let mut mat = bsec(dir.path())?;
+    let mut mat = bitbid(dir.path())?;
     mat.arg("materialize").arg(&id).arg("--dir").arg(&out_dir);
     mat.assert().success();
     assert_eq!(std::fs::read_to_string(out_dir.join("cert.pem"))?, "PEMBODY");
@@ -181,7 +181,7 @@ fn test_bundle_materialize_and_run_staging() -> Result<(), Box<dyn std::error::E
     assert!(out_dir.join(".env").exists());
 
     // run --secret stages files; the child asserts $CERT_FILE exists and env member injected.
-    let mut run = bsec(dir.path())?;
+    let mut run = bitbid(dir.path())?;
     run.arg("run").arg("--secret").arg(&id);
     run.arg("--").arg("sh").arg("-c").arg("test -f \"$CERT_FILE\" && test \"$DB\" = postgres");
     run.assert().success();
@@ -200,14 +200,14 @@ fn test_run_secret_wipes_temp_dir() -> Result<(), Box<dyn std::error::Error>> {
     let manifest = dir.path().join("bundle.json");
     std::fs::write(&manifest, r#"{"members":[{"path":"cert.pem","as":"pem","filename":"cert.pem"}]}"#)?;
 
-    let mut share = bsec(dir.path())?;
+    let mut share = bitbid(dir.path())?;
     share.arg("share").arg("--bundle").arg(&manifest);
     share.args(["--to", "public", "--ttl", "1h"]);
     let out = share.assert().success();
     let id = extract_secret_id(&String::from_utf8(out.get_output().stdout.clone())?);
 
     let sidecar = dir.path().join("staged_path.txt");
-    let mut run = bsec(dir.path())?;
+    let mut run = bitbid(dir.path())?;
     run.arg("run").arg("--secret").arg(&id);
     run.arg("--")
         .arg("sh")
@@ -231,14 +231,14 @@ fn test_materialize_schema_keys_only() -> Result<(), Box<dyn std::error::Error>>
 
     let src = dir.path().join(".env.prod");
     std::fs::write(&src, "DB_URL=postgres://secretvalue\nAPI_KEY=supersecret")?;
-    let mut share = bsec(dir.path())?;
+    let mut share = bitbid(dir.path())?;
     share.arg("share").arg("--file").arg(&src);
     share.args(["--as", "env", "--to", "public", "--ttl", "1h"]);
     let out = share.assert().success();
     let id = extract_secret_id(&String::from_utf8(out.get_output().stdout.clone())?);
 
     let schema = dir.path().join(".env.schema");
-    let mut mat = bsec(dir.path())?;
+    let mut mat = bitbid(dir.path())?;
     mat.arg("materialize").arg(&id).args(["--as", "schema", "--file"]).arg(&schema);
     mat.assert().success();
 
@@ -259,19 +259,19 @@ fn test_no_export_blocks_materialize_allows_view() -> Result<(), Box<dyn std::er
 
     let src = dir.path().join("secret.cred");
     std::fs::write(&src, "TOP_SECRET_TOKEN")?;
-    let mut share = bsec(dir.path())?;
+    let mut share = bitbid(dir.path())?;
     share.arg("share").arg("--file").arg(&src).arg("--no-export");
     share.args(["--to", "public", "--ttl", "1h"]);
     let out = share.assert().success();
     let id = extract_secret_id(&String::from_utf8(out.get_output().stdout.clone())?);
 
     // materialize refused
-    let mut mat = bsec(dir.path())?;
+    let mut mat = bitbid(dir.path())?;
     mat.arg("materialize").arg(&id).arg("--dir").arg(dir.path().join("out"));
     mat.assert().failure().stderr(predicate::str::contains("no-export"));
 
     // terminal view still works
-    let mut view = bsec(dir.path())?;
+    let mut view = bitbid(dir.path())?;
     view.arg("view").arg(&id);
     view.assert().success().stdout(predicate::str::contains("TOP_SECRET_TOKEN"));
     Ok(())

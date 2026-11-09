@@ -1,14 +1,19 @@
+> Prospective packaging template only. This channel has not been published or verified.
+> Package names, registry namespaces, taps, URLs, hashes and workflows below require
+> separate selection, validation and publication authorization. Do not use the
+> illustrated installation commands as available releases. Use [source installation](cargo.md).
+
 # NPM Wrapper & NPX Execution Guide (`npm` / `npx`)
 
-This guide details how to wrap the Rust `bsec` binary into an npm package, enabling JavaScript / TypeScript developers to install it via `npm install -g bsec` or execute it directly without compilation via `npx bsec`.
+This guide details how to wrap the Rust `bitbid` binary into an npm package, enabling JavaScript / TypeScript developers to install it via `npm install -g bitbid` or execute it directly without compilation via `npx bitbid`.
 
 ---
 
 ## 🏗 Architecture of binary NPM wrappers
 
-1. The root `npm` package (`bsec`) acts as a wrapper script (`bin/bsec.js`).
-2. Optional platform-specific binary packages (`@bsec/cli-darwin-arm64`, `@bsec/cli-linux-x64`, etc.) contain platform-native binaries compiled from Rust.
-3. When `npx bsec` is invoked, the wrapper detects host OS/architecture and delegates execution to the native binary.
+1. The root `npm` package (`bitbid`) acts as a wrapper script (`bin/bitbid.js`).
+2. Optional platform-specific binary packages (`@bitbid/cli-darwin-arm64`, `@bitbid/cli-linux-x64`, etc.) contain platform-native binaries compiled from Rust.
+3. When `npx bitbid` is invoked, the wrapper detects host OS/architecture and delegates execution to the native binary.
 
 ---
 
@@ -17,7 +22,7 @@ This guide details how to wrap the Rust `bsec` binary into an npm package, enabl
 ```text
 npm-package/
 ├── bin/
-│   └── bsec.js
+│   └── bitbid.js
 ├── index.js
 ├── package.json
 └── README.md
@@ -29,18 +34,18 @@ npm-package/
 
 ```json
 {
-  "name": "bsec-cli",
+  "name": "bitbid-cli",
   "version": "0.1.0",
   "description": "Secure CLI tool to manage and encrypt environment variables",
   "bin": {
-    "bsec": "./bin/bsec.js"
+    "bitbid": "./bin/bitbid.js"
   },
   "scripts": {
     "postinstall": "node ./scripts/install-binary.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/igmrrf/bsec.git"
+    "url": "git+https://github.com/igmrrf/clienv.git"
   },
   "keywords": [
     "cli",
@@ -56,7 +61,7 @@ npm-package/
 
 ---
 
-## 🛠 Step 2: Binary Launcher (`bin/bsec.js`)
+## 🛠 Step 2: Binary Launcher (`bin/bitbid.js`)
 
 ```javascript
 #!/usr/bin/env node
@@ -68,7 +73,7 @@ const fs = require('fs');
 const platform = process.platform;
 const arch = process.arch;
 
-const binaryName = platform === 'win32' ? 'bsec.exe' : 'bsec';
+const binaryName = platform === 'win32' ? 'bitbid.exe' : 'bitbid';
 const binaryPath = path.join(__dirname, '..', 'binaries', `${platform}-${arch}`, binaryName);
 
 if (!fs.existsSync(binaryPath)) {
@@ -103,13 +108,13 @@ npm publish --access public
 
 ## 🧪 User Execution
 
-Users can execute `bsec` instantly without needing Rust toolchains:
+Users can execute `bitbid` instantly without needing Rust toolchains:
 
 ```bash
 # Direct zero-install execution
-npx bsec-cli --help
+npx bitbid-cli --help
 
 # Global installation
-npm install -g bsec-cli
-bsec --version
+npm install -g bitbid-cli
+bitbid --version
 ```

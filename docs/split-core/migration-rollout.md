@@ -1,5 +1,11 @@
 # Incremental migration and rollout
 
+> E/P/A/T are now shipped at native `296ad8b` and web `0513523`; this document
+> preserves their implementation contract and historical paths. The next bounded
+> rename uses [rename execution](rename-execution.md) and [acceptance](rename-acceptance.md).
+> Package bitbid-cli already exists; binary bsec remains until N3. Do not repeat
+> topology work or interpret the old future tense below as unimplemented code.
+
 Status: accepted decision for [#14](https://github.com/igmrrf/clienv/issues/14), 2026-11-08. This records the next implementation checkpoints; it does not claim their code is shipped.
 
 Keep the shipped shared protocol and Yew CSR consumer working while adding a typed error layer, synchronous ports, one native registry-read adapter, then the production Cargo layout. Serialize these checkpoints because their public types, CLI wiring and package paths depend on one another. A wholesale module move would mix compatibility changes with transport and packaging failures.

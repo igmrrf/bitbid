@@ -7,7 +7,7 @@ fn actual_cli_preserves_registry_listing_and_never_rewrites_wallet() {
     let out = std::process::Command::new("python3")
         .arg(probe)
         .arg("--binary")
-        .arg(env!("CARGO_BIN_EXE_bsec"))
+        .arg(env!("CARGO_BIN_EXE_bitbid"))
         .output()
         .expect("run synthetic HTTP/CLI probe");
     assert!(

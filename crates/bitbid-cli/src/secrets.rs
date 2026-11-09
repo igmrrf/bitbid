@@ -258,7 +258,7 @@ pub fn view_payload(secret_id: &str, user_address: &str, password: Option<&str>)
     )?;
 
     record_read_on_chain(&priv_bytes, secret_id)?;
-    crate::blockchain::index_note(secret_id, "recipient");
+    crate::blockchain::index_note(secret_id, "recipient")?;
 
     Ok(payload)
 }

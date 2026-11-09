@@ -10,7 +10,7 @@ pub struct IpfsConfig {
     /// Kubo RPC API endpoint (local daemon or self-hosted node).
     #[serde(default = "default_ipfs_api_url")]
     pub api_url: String,
-    /// Pinata JWT for hosted pinning. Falls back to the BSEC_PINATA_JWT env var.
+    /// Pinata JWT for hosted pinning. Falls back to BITBID_PINATA_JWT, then its BSEC_PINATA_JWT alias.
     #[serde(default)]
     pub pinning_jwt: Option<String>,
 }
@@ -45,21 +45,21 @@ impl Default for NetworkConfig {
     }
 }
 
-pub fn get_config_path() -> PathBuf {
-    crate::wallet::get_app_dir().join("network-config.json")
+pub fn get_config_path() -> Result<PathBuf> {
+    Ok(crate::wallet::get_app_dir()?.join("network-config.json"))
 }
 
-pub fn load_network_config() -> NetworkConfig {
-    let path = get_config_path();
+pub fn load_network_config() -> Result<NetworkConfig> {
+    let path = get_config_path()?;
     if let Ok(content) = fs::read_to_string(&path)
         && let Ok(config) = serde_json::from_str(&content) {
-            return config;
+            return Ok(config);
         }
-    NetworkConfig::default()
+    Ok(NetworkConfig::default())
 }
 
 pub fn save_network_config(config: &NetworkConfig) -> Result<()> {
-    let path = get_config_path();
+    let path = get_config_path()?;
     let content = serde_json::to_string_pretty(config)?;
     crate::wallet::write_secure_file(&path, content.as_bytes())?;
     Ok(())
@@ -72,7 +72,7 @@ pub fn update_network_config(
     ipfs_gateway: Option<String>,
     ipfs_pinning: Option<String>,
 ) -> Result<NetworkConfig> {
-    let mut config = load_network_config();
+    let mut config = load_network_config()?;
 
     if let Some(net) = network {
         match net.to_lowercase().as_str() {

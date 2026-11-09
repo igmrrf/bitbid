@@ -1,3 +1,5 @@
+> Historical record; old names reflect the original version. For current installation and compatibility see [cutover](rename-cutover.md).
+
 # External Security Audit & Contract Verification Runbook
 
 Step-by-step process for the two production gates that must be performed by a human and cannot

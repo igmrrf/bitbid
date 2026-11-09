@@ -1,4 +1,4 @@
-# BSEC Smart Contract Deployment Guide
+# bitbid Smart Contract Deployment Guide
 
 This document provides step-by-step instructions for compiling and deploying the **`BsecSecretRegistry`** smart contract across local testnets (Docker Anvil), EVM public testnets (Polygon Amoy, Ethereum Sepolia, Base Sepolia), and EVM production mainnets.
 
@@ -70,12 +70,12 @@ Deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
 Transaction hash: 0x3e18a...
 ```
 
-### Step 3: Register Deployed Address in `bsec`
+### Step 3: Register Deployed Address in `bitbid`
 
 Save the deployed contract address in your network configuration:
 
 ```bash
-bsec config --network local --rpc "http://localhost:8545"
+bitbid config --network local --rpc "http://localhost:8545"
 ```
 
 ---
@@ -84,11 +84,11 @@ bsec config --network local --rpc "http://localhost:8545"
 
 ### Supported Networks & Faucets
 
-| Network | Chain ID | `bsec` Network Flag | Free Token Faucets |
+| Network | Chain ID | `bitbid` Network Flag | Free Token Faucets |
 | :--- | :---: | :--- | :--- |
-| **Polygon Amoy** | `80002` | `bsec config --network amoy` | • <https://faucet.polygon.technology/> |
-| **Ethereum Sepolia** | `11155111` | `bsec config --network sepolia` | • <https://sepoliafaucet.com/><br>• <https://faucets.chain.link/> |
-| **Base Sepolia** | `84532` | `bsec config --network base-sepolia` | • <https://faucets.chain.link/base-sepolia> |
+| **Polygon Amoy** | `80002` | `bitbid config --network amoy` | • <https://faucet.polygon.technology/> |
+| **Ethereum Sepolia** | `11155111` | `bitbid config --network sepolia` | • <https://sepoliafaucet.com/><br>• <https://faucets.chain.link/> |
+| **Base Sepolia** | `84532` | `bitbid config --network base-sepolia` | • <https://faucets.chain.link/base-sepolia> |
 
 ---
 

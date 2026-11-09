@@ -39,7 +39,7 @@ def record(identifier, public=False, sender=SENDER):
                 read_count=2, hidden=False)
 
 
-def run(binary, baseline_mode=False):
+def run(binary, baseline_mode=False, home_env="BITBID_HOME"):
     observations = []
     requests = []
     faults = []
@@ -83,21 +83,32 @@ def run(binary, baseline_mode=False):
 
     server = Service(('127.0.0.1', 0), Handler)
     server.timeout = 0.1
-    thread = threading.Thread(name='bsec-registry-probe-http', target=server.serve_forever, kwargs={'poll_interval': 0.01})
+    thread = threading.Thread(name='bitbid-registry-probe-http', target=server.serve_forever, kwargs={'poll_interval': 0.01})
     thread.start()
     url = f'http://127.0.0.1:{server.server_port}'
     try:
-        with tempfile.TemporaryDirectory(prefix='bsec-registry-probe-') as directory:
+        with tempfile.TemporaryDirectory(prefix='bitbid-registry-probe-') as directory:
             root = Path(directory)
             home = root / 'home'
             env = os.environ.copy()
-            env.update(BSEC_HOME=str(home), BSEC_E2E='0')
+            for name in ['BITBID_HOME', 'BSEC_HOME', 'BITBID_PINATA_JWT', 'BSEC_PINATA_JWT']:
+                env.pop(name, None)
+            env.update(HOME=str(root), BITBID_E2E='0')
+            env[home_env] = str(home)
             mnemonic = root / 'public-synthetic-mnemonic.txt'
             mnemonic.write_text(MNEMONIC)
 
             def cli(*args):
-                return subprocess.run([str(binary), *args], cwd=root, env=env,
-                                      stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+                result = subprocess.run([str(binary), *args], cwd=root, env=env,
+                                        stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+                warning = b'Warning: BSEC_HOME is deprecated; use BITBID_HOME. Support ends at 1.0.\n'
+                if home_env == 'BSEC_HOME':
+                    assert result.stderr.startswith(warning) and result.stderr.count(warning) == 1, result.stderr
+                    # Exact N1-approved warning only; diagnostic/output/exit assertions stay intact.
+                    result.stderr = result.stderr[len(warning):]
+                else:
+                    assert warning not in result.stderr, result.stderr
+                return result
 
             initialized = cli('init', '--no-encryption', '--import-mnemonic', str(mnemonic))
             assert initialized.returncode == 0, initialized.stderr
@@ -224,14 +235,14 @@ def run(binary, baseline_mode=False):
             wallet.unlink()
             check('missing-wallet-existing-home', {'a-bad': {}}, wallet_failure=True, request_ids=[])
             fresh = root / 'missing-home'
-            env['BSEC_HOME'] = str(fresh)
+            env[home_env] = str(fresh)
             start = len(requests)
             out = cli('list', '--json', '--all')
             assert out.returncode == 1 and not out.stdout and out.stderr.startswith(b'Error loading wallet:')
             assert fresh.is_dir() and not list(fresh.iterdir()) and len(requests) == start
             observations.append(dict(name='missing-home-created', exit=1, stdout='', requests=[], directory_created=True))
             return dict(binary=str(binary), binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
-                        baseline_mode=baseline_mode, probe_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                        baseline_mode=baseline_mode, home_env=home_env, legacy_warning_checked_each_process=True, probe_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                         service=dict(address=url, pid=os.getpid(), thread=thread.name, ready=True, stopped=True,
                         thread_joined=True, methods=['eth_call']), observations=observations)
     finally:
@@ -246,9 +257,10 @@ def main():
     parser.add_argument('--binary', required=True, type=Path)
     parser.add_argument('--report', type=Path)
     parser.add_argument('--baseline-mode', action='store_true')
+    parser.add_argument('--home-env', choices=['BITBID_HOME', 'BSEC_HOME'], default='BITBID_HOME')
     parser.add_argument('--compare', type=Path)
     args = parser.parse_args()
-    result = run(args.binary.resolve(), args.baseline_mode)
+    result = run(args.binary.resolve(), args.baseline_mode, args.home_env)
     if args.compare:
         before = json.loads(args.compare.read_text())['observations']
         after = result['observations']

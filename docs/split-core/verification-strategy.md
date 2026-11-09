@@ -1,6 +1,6 @@
 # Shared-core verification
 
-The native Cargo workspace contains `bitbid-cli` (binary `bsec`), `bitbid-core` and native `bitbid-adapters`. Commands without
+The native Cargo workspace contains `bitbid-cli` (binary `bitbid`), `bitbid-core` and native `bitbid-adapters`. Commands without
 `--workspace` at this root can omit the core's own tests, so native lint, tests
 and coverage explicitly select the workspace. CI enforces strict Clippy rather
 than a formatting gate. Run from the native repository root:
@@ -29,7 +29,7 @@ actual bytes and failure behavior.
 | Existing gated native chain tests | Anvil registry and IPFS adapter flows; CI's existing `e2e` job retains deployment and service readiness checks |
 
 Existing native chain integration tests skip the live-chain path unless
-`BSEC_E2E=1`. A passing offline workspace run does not establish live-chain
+`BITBID_E2E=1`. A passing offline workspace run does not establish live-chain
 behavior. The gated CI job remains responsible for that path.
 
 Checkpoint P adds a headless public operation without production CLI or browser
@@ -77,15 +77,15 @@ in native/browser adapter crates when extending the split.
 ## Release and consumer checks
 
 ```sh
-cargo build --locked --release -p bitbid-cli --bin bsec
-target/release/bsec --help
+cargo build --locked --release -p bitbid-cli --bin bitbid
+target/release/bitbid --help
 # In the separate ../webapp repository, using its pinned toolchain:
 cargo test --locked -p bitbid-webapp-core
 cargo build --locked --release --target wasm32-unknown-unknown -p bitbid-webapp
 trunk build --release
 ```
 
-Smoke the built CLI with an isolated temporary `BSEC_HOME` and public synthetic
+Smoke the built CLI with an isolated temporary `BITBID_HOME` and public synthetic
 keys from `crates/bitbid-core/tests/vectors/ipfs-v1.json`: seal stdin, unseal to
 identical bytes, open the frozen token, and assert nonzero exits with empty
 stdout for a wrong/malformed key and malformed token. No wallet/backend should
@@ -104,7 +104,7 @@ adapter/SSR extraction and rollout remain deferred; the shipped app is Yew CSR.
 Checkpoint A adds native-only `bitbid-adapters::rpc::BlockingRpc`. Public consumer
 HTTP tests in `crates/bitbid-adapters/tests/rpc_read.rs` exercise real loopback
 requests, JSON-RPC envelopes, typed failures, status/result compatibility and the
-20-second timeout without retries. These tests always execute; no `BSEC_E2E` opt-in
+20-second timeout without retries. These tests always execute; no `BITBID_E2E` opt-in
 is needed. Native transport dependencies and the public module are cfg-gated away
 from WASM. Neither core nor the browser depends on adapters.
 
@@ -115,8 +115,8 @@ explicit binary path, so release and installed binaries can use the same audit:
 ```sh
 cargo test --locked -p bitbid-adapters --test rpc_read
 cargo test --locked -p bitbid-cli --test registry_read_tests
-cargo build --locked --release -p bitbid-cli --bin bsec
-python3 crates/bitbid-cli/tests/support/registry_probe.py --binary target/release/bsec --report /tmp/bsec-registry-report.json
+cargo build --locked --release -p bitbid-cli --bin bitbid
+python3 crates/bitbid-cli/tests/support/registry_probe.py --binary target/release/bitbid --report /tmp/bitbid-registry-report.json
 ```
 
 The probe imports a public synthetic mnemonic without encryption, closes stdin,

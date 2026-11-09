@@ -1,13 +1,18 @@
+> Prospective packaging template only. This channel has not been published or verified.
+> Package names, registry namespaces, taps, URLs, hashes and workflows below require
+> separate selection, validation and publication authorization. Do not use the
+> illustrated installation commands as available releases. Use [source installation](cargo.md).
+
 # Homebrew Formula & Tap Deployment Guide
 
-This guide describes how to publish and maintain a Homebrew Formula for `bsec`, allowing macOS and Linux users to install the application via `brew install bsec` or `brew install igmrrf/tap/bsec`.
+This guide describes how to publish and maintain a Homebrew Formula for `bitbid`, allowing macOS and Linux users to install the application via `brew install bitbid` or `brew install igmrrf/tap/bitbid`.
 
 ---
 
 ## 📋 Distribution Options
 
 1. **Custom Homebrew Tap (Recommended for early/independent releases)**:
-   Users run `brew install igmrrf/tap/bsec`.
+   Users run `brew install igmrrf/tap/bitbid`.
 2. **Homebrew Core (Official repository)**:
    Submitted via pull request to `homebrew/homebrew-core` once the project matures.
 
@@ -21,7 +26,7 @@ Directory structure:
 ```text
 homebrew-tap/
 └── Formula/
-    └── bsec.rb
+    └── bitbid.rb
 ```
 
 ---
@@ -31,35 +36,35 @@ homebrew-tap/
 When a new version is ready, build the optimized release binary, compress it into a TAR archive, and calculate its SHA-256 hash:
 
 ```bash
-cargo build --release
+cargo build --locked --release -p bitbid-cli --bin bitbid
 cd target/release
-tar -czf bsec-mac.tar.gz bsec
-shasum -a 256 bsec-mac.tar.gz
+tar -czf bitbid-mac.tar.gz bitbid
+shasum -a 256 bitbid-mac.tar.gz
 ```
 
-Upload the `bsec-mac.tar.gz` archive to your GitHub Releases as an asset.
+Upload the `bitbid-mac.tar.gz` archive to your GitHub Releases as an asset.
 
 ---
 
-## 🛠 Step 3: Write Homebrew Formula (`bsec.rb`)
+## 🛠 Step 3: Write Homebrew Formula (`bitbid.rb`)
 
-Create `Formula/bsec.rb` in your `homebrew-tap` repository:
+Create `Formula/bitbid.rb` in your `homebrew-tap` repository:
 
 ```ruby
-class Bsec < Formula
+class Bitbid < Formula
   desc "Secure CLI tool to manage and encrypt environment variables"
-  homepage "https://github.com/igmrrf/bsec"
-  url "https://github.com/igmrrf/bsec/releases/download/v0.1.0/bsec-mac.tar.gz"
-  sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  homepage "https://github.com/igmrrf/clienv"
+  url "<VERIFIED_RELEASE_ASSET_URL>"
+  sha256 "<VERIFIED_ARCHIVE_SHA256>"
   version "0.1.0"
   license "MIT"
 
   def install
-    bin.install "bsec"
+    bin.install "bitbid"
   end
 
   test do
-    assert_match "bsec", shell_output("#{bin}/bsec --version")
+    assert_match "bitbid", shell_output("#{bin}/bitbid --version")
   end
 end
 ```
@@ -84,9 +89,9 @@ jobs:
       - name: Update Homebrew Formula
         uses: mislav/bump-homebrew-formula-action@v2
         with:
-          formula-name: bsec
+          formula-name: bitbid
           homebrew-tap: igmrrf/homebrew-tap
-          download-url: https://github.com/igmrrf/bsec/releases/download/${{ github.ref_name }}/bsec-mac.tar.gz
+          download-url: <VERIFIED_RELEASE_ASSET_URL> github.ref_name }}/bitbid-mac.tar.gz
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 ```
@@ -99,9 +104,9 @@ jobs:
 # Tap repository
 brew tap igmrrf/tap
 
-# Install bsec
-brew install bsec
+# Install bitbid
+brew install bitbid
 
 # Test execution
-bsec --help
+bitbid --help
 ```

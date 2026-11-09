@@ -1,3 +1,8 @@
+> Prospective packaging template only. This channel has not been published or verified.
+> Package names, registry namespaces, taps, URLs, hashes and workflows below require
+> separate selection, validation and publication authorization. Do not use the
+> illustrated installation commands as available releases. Use [source installation](cargo.md).
+
 # Linux Native Packaging Guide (.deb, .rpm, Arch AUR, Snap)
 
 This guide covers building native Linux package formats for **Debian/Ubuntu**, **Fedora/RHEL**, **Arch Linux**, and **Canonical Snapcraft**.
@@ -12,9 +17,9 @@ This guide covers building native Linux package formats for **Debian/Ubuntu**, *
 cargo install cargo-deb
 ```
 
-### Step 2: Configure [`Cargo.toml`](file:///Users/igmrrf/Desktop/tmp/bsec/Cargo.toml)
+### Step 2: Configure [`Cargo.toml`](../Cargo.toml)
 
-Add `package.metadata.deb` section to [`Cargo.toml`](file:///Users/igmrrf/Desktop/tmp/bsec/Cargo.toml):
+Add `package.metadata.deb` section to [`Cargo.toml`](../Cargo.toml):
 
 ```toml
 [package.metadata.deb]
@@ -27,8 +32,8 @@ depends = "$auto"
 section = "utility"
 priority = "optional"
 assets = [
-    ["target/release/bsec", "usr/bin/bsec", "755"],
-    ["README.md", "usr/share/doc/bsec/README.md", "644"],
+    ["target/release/bitbid", "usr/bin/bitbid", "755"],
+    ["README.md", "usr/share/doc/bitbid/README.md", "644"],
 ]
 ```
 
@@ -59,16 +64,16 @@ cargo install cargo-generate-rpm
 ### Step 2: Build RPM Package
 
 ```bash
-cargo build --release
+cargo build --locked --release -p bitbid-cli --bin bitbid
 cargo generate-rpm
 ```
 
-Generated artifact path: `target/generate-rpm/bsec-0.1.0-1.x86_64.rpm`
+Generated artifact path: `target/generate-rpm/bitbid-0.1.0-1.x86_64.rpm`
 
 ### Step 3: Installation Test
 
 ```bash
-sudo dnf install target/generate-rpm/bsec-0.1.0-1.x86_64.rpm
+sudo dnf install target/generate-rpm/bitbid-0.1.0-1.x86_64.rpm
 ```
 
 ---
@@ -79,12 +84,12 @@ Create a `PKGBUILD` for Arch Linux users:
 
 ```bash
 # Maintainer: Francis Igbiriki <francis.igbiriki@gmail.com>
-pkgname=bsec
+pkgname=bitbid
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="Secure CLI tool to manage and encrypt environment variables"
 arch=('x86_64' 'aarch64')
-url="https://github.com/igmrrf/bsec"
+url="https://github.com/igmrrf/clienv"
 license=('MIT' 'Apache-2.0')
 depends=('gcc-libs')
 makedepends=('cargo')
@@ -93,7 +98,7 @@ sha256sums=('SKIP')
 
 build() {
   cd "$pkgname-$pkgver"
-  cargo build --release --locked
+  cargo build --locked --release -p bitbid-cli --bin bitbid --locked
 }
 
 package() {
@@ -109,23 +114,23 @@ package() {
 Create `snap/snapcraft.yaml`:
 
 ```yaml
-name: bsec
+name: bitbid
 base: core22
 version: '0.1.0'
 summary: Secure CLI tool to manage and encrypt environment variables
 description: |
-  bsec manages local environment variables and encrypted secret sharing.
+  bitbid manages local environment variables and encrypted secret sharing.
 
 grade: stable
 confinement: strict
 
 apps:
-  bsec:
-    command: bin/bsec
+  bitbid:
+    command: bin/bitbid
     plugs: [network, home]
 
 parts:
-  bsec:
+  bitbid:
     plugin: rust
     source: .
 ```

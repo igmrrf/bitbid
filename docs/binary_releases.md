@@ -1,6 +1,11 @@
+> Prospective packaging template only. This channel has not been published or verified.
+> Package names, registry namespaces, taps, URLs, hashes and workflows below require
+> separate selection, validation and publication authorization. Do not use the
+> illustrated installation commands as available releases. Use [source installation](cargo.md).
+
 # GitHub Binary Releases & Cross-Compilation Guide
 
-This guide details how to automatically compile and publish standalone, pre-built binary releases of `bsec` for **macOS**, **Linux**, and **Windows** using `cargo-dist` and GitHub Actions.
+This guide details how to automatically compile and publish standalone, pre-built binary releases of `bitbid` for **macOS**, **Linux**, and **Windows** using `cargo-dist` and GitHub Actions.
 
 ---
 
@@ -32,7 +37,7 @@ cargo install cargo-dist
 cargo dist init
 ```
 
-This generates `dist` configurations inside [`Cargo.toml`](file:///Users/igmrrf/Desktop/tmp/bsec/Cargo.toml) and creates a GitHub Actions release workflow `.github/workflows/release.yml`.
+This generates `dist` configurations inside [`Cargo.toml`](../Cargo.toml) and creates a GitHub Actions release workflow `.github/workflows/release.yml`.
 
 ---
 
@@ -55,16 +60,16 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: bsec-linux-x86_64.tar.gz
+            artifact_name: bitbid-linux-x86_64.tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: bsec-macos-arm64.tar.gz
+            artifact_name: bitbid-macos-arm64.tar.gz
           - os: macos-13
             target: x86_64-apple-darwin
-            artifact_name: bsec-macos-x86_64.tar.gz
+            artifact_name: bitbid-macos-x86_64.tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: bsec-windows-x86_64.zip
+            artifact_name: bitbid-windows-x86_64.zip
 
     steps:
       - uses: actions/checkout@v4
@@ -73,17 +78,17 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build Release Binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --locked --release -p bitbid-cli --bin bitbid --target ${{ matrix.target }}
 
       - name: Package Binaries (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          tar -czvf ${{ matrix.artifact_name }} -C target/${{ matrix.target }}/release bsec
+          tar -czvf ${{ matrix.artifact_name }} -C target/${{ matrix.target }}/release bitbid
 
       - name: Package Binaries (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          Compress-Archive -Path target/${{ matrix.target }}/release/bsec.exe -DestinationPath ${{ matrix.artifact_name }}
+          Compress-Archive -Path target/${{ matrix.target }}/release/bitbid.exe -DestinationPath ${{ matrix.artifact_name }}
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2

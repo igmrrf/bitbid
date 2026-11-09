@@ -455,14 +455,14 @@ pub fn run_with_envs(
     password: Option<&str>,
 ) -> Result<i32> {
     if command_and_args.is_empty() {
-        return Err(anyhow!("No command provided. Usage: bsec run -- <command>"));
+        return Err(anyhow!("No command provided. Usage: bitbid run -- <command>"));
     }
 
     let mut env_map = BTreeMap::new();
     // Keeps any `run --secret` staging dir alive until the child exits; its Drop wipes it.
     let mut _staged_guard: Option<crate::materialize::StagedDir> = None;
 
-    let proj_config = crate::project_config::load_project_config();
+    let proj_config = crate::project_config::load_project_config()?;
 
     let target_secret_id = secret_id.or_else(|| {
         proj_config.as_ref().and_then(|p| p.secret_id.as_deref())

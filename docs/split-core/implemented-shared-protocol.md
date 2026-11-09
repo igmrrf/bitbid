@@ -7,7 +7,7 @@ Leptos server with per-request key unlock. The implemented console is Yew CSR:
 keys and cryptography run locally in browser WASM. This change retains that
 platform and does not implement the deferred SSR key custody model.
 
-One source library, `crates/bitbid-core`, compiles into the native `bsec` binary
+One source library, `crates/bitbid-core`, compiles into the native `bitbid` binary
 and browser WASM. A browser cannot execute the native binary. `webapp` consumes
 this library via a sibling path dependency and a thin compatibility namespace.
 The static `web` landing page is a separate repository and has no crypto runtime.

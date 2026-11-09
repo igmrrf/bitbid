@@ -409,14 +409,14 @@ pub struct StagedDir {
 }
 
 impl StagedDir {
-    /// Create a fresh `<os-temp>/bsec-<random-hex>/` dir at mode 0700.
+    /// Create a fresh `<os-temp>/bitbid-<random-hex>/` dir at mode 0700.
     pub fn new() -> Result<Self> {
         use aes_gcm::aead::rand_core::RngCore;
         use aes_gcm::aead::OsRng;
         let mut buf = [0u8; 16];
         OsRng.fill_bytes(&mut buf);
         let suffix: String = buf.iter().map(|b| format!("{:02x}", b)).collect();
-        let path = std::env::temp_dir().join(format!("bsec-{}", suffix));
+        let path = std::env::temp_dir().join(format!("bitbid-{}", suffix));
         std::fs::create_dir(&path).map_err(|e| anyhow!("creating staging dir: {}", e))?;
         #[cfg(unix)]
         {
@@ -922,6 +922,36 @@ mod tests {
     }
 
     #[test]
+    fn staged_dir_uses_canonical_prefix_and_cleans_up_private_files() {
+        let path;
+        {
+            let staged = StagedDir::new().unwrap();
+            path = staged.path().to_path_buf();
+            assert!(path.file_name().unwrap().to_str().unwrap().starts_with("bitbid-"));
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o700);
+            }
+            let member = BundleMember {
+                kind: SecretKind::Pem,
+                filename: "secret.pem".into(),
+                content: "synthetic".into(),
+                encoding: "utf8".into(),
+                env: None,
+            };
+            let file = staged.stage_member(&member).unwrap();
+            assert_eq!(std::fs::read(&file).unwrap(), b"synthetic");
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                assert_eq!(std::fs::metadata(file).unwrap().permissions().mode() & 0o777, 0o600);
+            }
+        }
+        assert!(!path.exists());
+    }
+
+    #[test]
     fn sanitize_accepts_plain_basename() {
         assert_eq!(sanitize_basename("cert.pem").unwrap(), "cert.pem");
         assert_eq!(sanitize_basename(".env").unwrap(), ".env");
@@ -970,7 +1000,7 @@ mod tests {
         use std::sync::atomic::{AtomicPtr, Ordering};
 
         let root = tempfile::tempdir().unwrap();
-        let stage = root.path().join("bsec-stage");
+        let stage = root.path().join("bitbid-stage");
         std::fs::create_dir(&stage).unwrap();
         let f1 = stage.join("secret.pem");
         let f2 = stage.join(".env");
