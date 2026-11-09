@@ -17,3 +17,22 @@ fn actual_cli_preserves_registry_listing_and_never_rewrites_wallet() {
         String::from_utf8_lossy(&out.stderr)
     );
 }
+
+#[cfg(unix)]
+#[test]
+fn selected_list_preserves_real_filesystem_fallbacks_and_lazy_revalidation() {
+    let probe =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/support/store_list_probe.py");
+    let out = std::process::Command::new("python3")
+        .arg(probe)
+        .arg("--binary")
+        .arg(env!("CARGO_BIN_EXE_bitbid"))
+        .output()
+        .expect("run actual selected Store read probe");
+    assert!(
+        out.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+}

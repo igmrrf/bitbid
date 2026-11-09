@@ -256,8 +256,8 @@ pub(crate) fn list_registry_secrets(
     expired_only: bool,
     active_only: bool,
 ) -> Result<Vec<(String, OnChainSecretInfo)>> {
-    list_secrets_with(
-        user_address, filter_user, all, expired_only, active_only, list_read::read,
+    list_index_with(
+        list_read::load_index()?, user_address, filter_user, all, expired_only, active_only, list_read::read,
     )
 }
 
@@ -267,9 +267,20 @@ fn list_secrets_with(
     all: bool,
     expired_only: bool,
     active_only: bool,
+    read: impl FnMut(&str) -> Result<OnChainSecretInfo>,
+) -> Result<Vec<(String, OnChainSecretInfo)>> {
+    list_index_with(load_index()?, user_address, filter_user, all, expired_only, active_only, read)
+}
+
+fn list_index_with(
+    index: Index,
+    user_address: &str,
+    filter_user: Option<&str>,
+    all: bool,
+    expired_only: bool,
+    active_only: bool,
     mut read: impl FnMut(&str) -> Result<OnChainSecretInfo>,
 ) -> Result<Vec<(String, OnChainSecretInfo)>> {
-    let index = load_index()?;
     let mut results = Vec::new();
 
     for (sec_id, entry) in index.iter() {

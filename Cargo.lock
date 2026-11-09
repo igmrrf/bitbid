@@ -240,8 +240,10 @@ name = "bitbid-adapters"
 version = "0.1.0"
 dependencies = [
  "bitbid-core",
+ "libc",
  "reqwest",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]

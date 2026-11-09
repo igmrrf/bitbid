@@ -9,3 +9,9 @@ description = "Native host adapters for BitSec's shared core"
 bitbid-core = { path = "../bitbid-core" }
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 serde_json = "1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3.19.0"
