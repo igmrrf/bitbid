@@ -1,5 +1,10 @@
 # Secret and key handling in the SSR web path
 
+> Historical server-wallet plan. The live-agreed [hosted team application contract](team-web-execution.md)
+> supersedes this server-unlock approach for the new client-encrypted team-vault product.
+> Native blockchain-wallet/signing custody is separate. Preserve this document as decision provenance;
+> it does not describe the shipped Yew browser-local crypto console or an implemented server.
+
 This document records the ruling from wayfinder ticket #16: how private keys,
 wallet passwords, and other secret material are handled when the shared
 `bitbid-core` is driven from the Leptos SSR web app instead of the `bitbid` CLI.
