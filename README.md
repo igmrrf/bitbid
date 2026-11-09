@@ -19,7 +19,7 @@ Keep Cargo/tool caches, temporary files and Trunk outputs under the Desktop
 workspace's `.local` directory using CARGO_HOME, CARGO_TARGET_DIR, TMPDIR and
 XDG_CACHE_HOME. Existing target/dist files are local outputs and ignored.
 
-Seal produces `bitbid2:` tokens compatible with `bsec seal` / `bsec unseal`.
+Seal produces `bitbid2:` tokens compatible with `bitbid seal` / `bitbid unseal`.
 Unseal also reads old `bitbid1:` browser strings and CLI IPFS JSON. The browser
 only displays single bodies; bundle materialization remains in the CLI. Wallet
 connection only requests the injected wallet's public address; registry/revoke
