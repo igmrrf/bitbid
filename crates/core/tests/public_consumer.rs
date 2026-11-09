@@ -176,3 +176,48 @@ fn browser_single_body_boundary_preserves_bundle_and_encoding_errors() {
         Err(TokenError::Encoding)
     ));
 }
+
+#[test]
+fn additive_errors_leave_facade_concrete_results_and_legacy_matching_intact() {
+    fn protocol_tag(error: protocol::ProtocolError) -> &'static str {
+        match error {
+            protocol::ProtocolError::Json(_) => "json",
+            protocol::ProtocolError::Version(_) => "version",
+            protocol::ProtocolError::Base64(_) => "base64",
+            protocol::ProtocolError::Prefix => "prefix",
+            protocol::ProtocolError::Size => "size",
+        }
+    }
+    fn token_tag(error: TokenError) -> &'static str {
+        match error {
+            TokenError::Crypto(_) => "crypto",
+            TokenError::Protocol(_) => "protocol",
+            TokenError::Legacy(_) => "legacy",
+            TokenError::Bundle => "bundle",
+            TokenError::Encoding => "encoding",
+        }
+    }
+    fn registry_tag(error: DecodeError) -> &'static str {
+        match error {
+            DecodeError::Json(_) => "json",
+            DecodeError::Rpc(_) => "rpc",
+            DecodeError::NoResult => "absent",
+            DecodeError::Shape(_) => "shape",
+            DecodeError::Abi(_) => "abi",
+        }
+    }
+    let payload: Result<shared::protocol::IpfsPayload, protocol::ProtocolError> =
+        protocol::from_share_string("unknown:");
+    assert_eq!(protocol_tag(payload.unwrap_err()), "prefix");
+    let plaintext: Result<Vec<u8>, shared::token::TokenError> =
+        seal::unseal("unknown:", &secret(2));
+    assert_eq!(token_tag(plaintext.unwrap_err()), "protocol");
+    let record: Result<shared::registry::RegistryRecord, DecodeError> =
+        registry::decode_get_secret_info_response("{}", "test");
+    assert_eq!(registry_tag(record.unwrap_err()), "absent");
+
+    let legacy: TokenError = shared::token::TokenError::Legacy("pw".into());
+    let additive: shared::Error = legacy.into();
+    assert_eq!(additive.kind(), shared::ErrorKind::Decode);
+    assert_eq!(additive.public_message(), "decode failed");
+}
