@@ -1,0 +1,80 @@
+{
+  "derived": {
+    "address": "0x83f1caAdaBeEC2945b73087F803d404F054Cc2B7",
+    "mnemonic": "abandon amount liar amount expire adjust cage candy arch gather drum buyer",
+    "private_key": "0xdf02cbea58239744a8a6ba328056309ae43f86fec6db45e5f782adcf38aacadf",
+    "public_key": "0x049966a68158fcf8839e7bdbc6b889d4608bd0b4afb358b073bed1d7b70dbe2f4fe1e8a769e62b4a97fe76689207906e3dc00a4be6c71e3ec39142d5a646c9c113"
+  },
+  "encrypted": "AAECAwQFBgcICQoLDA0ODw==:EBESExQVFhcYGRob:aTHkBvYPmpQTGRh+PnBszJC37b8LEGZS9lJ/SkMic3P7NW3UQTXm6SUFAbPIseJ+mb1a7RKD9fOT9fKJn5dvjQSBlNimrP8N2P1T7QhmyEb68MUJzVsRgcFPqPqU8gSekW4bZmrN3yMRy3rwDtE9gM0PUB2dXRF/b3cJhaY+rt3dTF14vX7lzFIPu9z4uTtCI/ZPpne6xywgj+iroPAAZyyhMUo/0C67mglChaxDbLn78UMd+RWCU54+vrPkaMIuryxfpFdVGm3jKYYwLQkpzKnvq37xsIKaw3DLjb7AlUQYRuza5cfTzEU5VPej8NFPi6h6u699FgCXpfWRgojP7AON88sCkPGBGHAdBfBQHim2+KIDq1ksaZfc+eCXpvi9DpktNBnwskfAK+VSgTiQTDPVKXfeLfxTFGMWGPwTngKHIbKqevNICGXIwtod9CSd4zmUf5G5VsuBcm4PeODy8Cg9q9fExwUT+6Jmy9cFGJlvDnUdqEVNjMKP2aL8CzCZL6WVeUzbVECq636mEdlMcpZNhaGgEVM0pu9zQ4BnLd+1sBu3Ie8Ok3ASNIL2mXn8igsAL+R/c9kyKDN4QkVb4VAJwZb+PCNSADnkJF9eKmjj7R0ItqpkEcqZTmu6l+TnZ45ThMqkNJRYbqfmPO0HyGGJh2+QW6nPYxNYnWkGfMQ5StvMvP5P+RY=",
+  "entropy_hex": "000102030405060708090a0b0c0d0e0f",
+  "kdf": [
+    {
+      "key_hex": "525400fdd3c0e5dff40ed80428affc373107f5e53038798ecc1eee0a3329f954",
+      "salt_hex": ""
+    },
+    {
+      "key_hex": "19ef7baeed203324eb7f33a6ca9b91a814298a3c2abd79a3536b1f3f1c422262",
+      "salt_hex": "00"
+    },
+    {
+      "key_hex": "4fdd50bbe913ba770c7b66b40c06568d5345b95aa65658c1a4194913d0febc08",
+      "salt_hex": "00010203040506"
+    },
+    {
+      "key_hex": "436377d991c23c451c18827b093a7e8e3b7eb306cf123ad67d1e5e2641e22e99",
+      "salt_hex": "0001020304050607"
+    },
+    {
+      "key_hex": "ce04a86f33bfe719484f303f6e512c1cea39d35869944eb2634c6505c8acb4ef",
+      "salt_hex": "000102030405060708090a0b0c0d0e0f"
+    }
+  ],
+  "nonce_hex": "101112131415161718191a1b",
+  "notice": "PUBLIC SYNTHETIC TEST VECTORS ONLY; NEVER USE THESE KEYS",
+  "password": "PUBLIC synthetic password 🔒",
+  "plaintext": "{\n  \"address\": \"0x83f1caAdaBeEC2945b73087F803d404F054Cc2B7\",\n  \"public_key\": \"0x049966a68158fcf8839e7bdbc6b889d4608bd0b4afb358b073bed1d7b70dbe2f4fe1e8a769e62b4a97fe76689207906e3dc00a4be6c71e3ec39142d5a646c9c113\",\n  \"created_at\": 1234567890,\n  \"last_accessed\": 1234567891,\n  \"user_id\": \"synthetic\\\"\\\\\\n\\r\\t\\u0000\\u001fé🔒\",\n  \"private_key\": \"0xdf02cbea58239744a8a6ba328056309ae43f86fec6db45e5f782adcf38aacadf\",\n  \"mnemonic\": \"abandon amount liar amount expire adjust cage candy arch gather drum buyer\"\n}",
+  "profile": {
+    "aad": "",
+    "algorithm": "Argon2id",
+    "argon2": "0.5.3",
+    "base64": "standard padded",
+    "gcm_tag_bytes": 16,
+    "iterations": 2,
+    "lanes": 1,
+    "memory_kib": 19456,
+    "nonce_bytes": 12,
+    "output_bytes": 32,
+    "path": "m/44'/60'/0'/0/0",
+    "salt_bytes": 16,
+    "version": 19
+  },
+  "rendered": [
+    {
+      "json": "{\n  \"address\": \"0x83f1caAdaBeEC2945b73087F803d404F054Cc2B7\",\n  \"public_key\": \"0x049966a68158fcf8839e7bdbc6b889d4608bd0b4afb358b073bed1d7b70dbe2f4fe1e8a769e62b4a97fe76689207906e3dc00a4be6c71e3ec39142d5a646c9c113\",\n  \"created_at\": 1234567890,\n  \"last_accessed\": 1234567891,\n  \"user_id\": \"synthetic\\\"\\\\\\n\\r\\t\\u0000\\u001fé🔒\"\n}",
+      "mnemonic": false,
+      "private": false
+    },
+    {
+      "json": "{\n  \"address\": \"0x83f1caAdaBeEC2945b73087F803d404F054Cc2B7\",\n  \"public_key\": \"0x049966a68158fcf8839e7bdbc6b889d4608bd0b4afb358b073bed1d7b70dbe2f4fe1e8a769e62b4a97fe76689207906e3dc00a4be6c71e3ec39142d5a646c9c113\",\n  \"created_at\": 1234567890,\n  \"last_accessed\": 1234567891,\n  \"user_id\": \"synthetic\\\"\\\\\\n\\r\\t\\u0000\\u001fé🔒\",\n  \"private_key\": \"0xdf02cbea58239744a8a6ba328056309ae43f86fec6db45e5f782adcf38aacadf\"\n}",
+      "mnemonic": false,
+      "private": true
+    },
+    {
+      "json": "{\n  \"address\": \"0x83f1caAdaBeEC2945b73087F803d404F054Cc2B7\",\n  \"public_key\": \"0x049966a68158fcf8839e7bdbc6b889d4608bd0b4afb358b073bed1d7b70dbe2f4fe1e8a769e62b4a97fe76689207906e3dc00a4be6c71e3ec39142d5a646c9c113\",\n  \"created_at\": 1234567890,\n  \"last_accessed\": 1234567891,\n  \"user_id\": \"synthetic\\\"\\\\\\n\\r\\t\\u0000\\u001fé🔒\",\n  \"mnemonic\": \"abandon amount liar amount expire adjust cage candy arch gather drum buyer\"\n}",
+      "mnemonic": true,
+      "private": false
+    },
+    {
+      "json": "{\n  \"address\": \"0x83f1caAdaBeEC2945b73087F803d404F054Cc2B7\",\n  \"public_key\": \"0x049966a68158fcf8839e7bdbc6b889d4608bd0b4afb358b073bed1d7b70dbe2f4fe1e8a769e62b4a97fe76689207906e3dc00a4be6c71e3ec39142d5a646c9c113\",\n  \"created_at\": 1234567890,\n  \"last_accessed\": 1234567891,\n  \"user_id\": \"synthetic\\\"\\\\\\n\\r\\t\\u0000\\u001fé🔒\",\n  \"private_key\": \"0xdf02cbea58239744a8a6ba328056309ae43f86fec6db45e5f782adcf38aacadf\",\n  \"mnemonic\": \"abandon amount liar amount expire adjust cage candy arch gather drum buyer\"\n}",
+      "mnemonic": true,
+      "private": true
+    }
+  ],
+  "rendered_null": "{\n  \"address\": \"0x83f1caAdaBeEC2945b73087F803d404F054Cc2B7\",\n  \"public_key\": \"0x049966a68158fcf8839e7bdbc6b889d4608bd0b4afb358b073bed1d7b70dbe2f4fe1e8a769e62b4a97fe76689207906e3dc00a4be6c71e3ec39142d5a646c9c113\",\n  \"created_at\": 1234567890,\n  \"last_accessed\": 1234567891,\n  \"user_id\": null,\n  \"private_key\": \"0xdf02cbea58239744a8a6ba328056309ae43f86fec6db45e5f782adcf38aacadf\",\n  \"mnemonic\": \"abandon amount liar amount expire adjust cage candy arch gather drum buyer\"\n}",
+  "salt_hex": "000102030405060708090a0b0c0d0e0f",
+  "scalar_one": {
+    "address": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+    "private_key": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "public_key": "0x0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+  }
+}

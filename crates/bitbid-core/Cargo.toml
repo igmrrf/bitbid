@@ -6,6 +6,9 @@ license = "MIT OR Apache-2.0"
 description = "Shared native/WASM payload protocol, cryptography and registry codecs for Bitbid"
 
 [dependencies]
+argon2 = { version = "=0.5.3", default-features = false, features = ["alloc", "zeroize"] }
+bip32 = { version = "=0.5.3", default-features = false, features = ["secp256k1", "std"] }
+bip39 = { version = "=2.2.2", default-features = false, features = ["std", "zeroize"] }
 aes-gcm = "0.10.3"
 base64 = "0.22.1"
 getrandom = "0.2"

@@ -1,11 +1,7 @@
 use anyhow::{anyhow, Result};
 use crate::errors::BsecError;
 use aes_gcm::aead::rand_core::RngCore;
-use aes_gcm::aead::{Aead, KeyInit, OsRng};
-use aes_gcm::{AeadCore, Aes256Gcm, Nonce};
-use argon2::Argon2;
-use base64::prelude::*;
-use k256::elliptic_curve::sec1::ToEncodedPoint;
+use aes_gcm::aead::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -160,144 +156,46 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>> {
         .collect()
 }
 
+/// Native fail-stop entropy adapter; never substitutes deterministic bytes.
+struct WalletOsRandom;
+impl bitbid_core::RandomSource for WalletOsRandom {
+    fn fill_bytes(&self, dest: &mut [u8]) { OsRng.fill_bytes(dest); }
+    fn gen_key(&self) -> k256::SecretKey { k256::SecretKey::random(&mut OsRng) }
+}
+
 pub fn derive_key(password: &str, salt: &[u8]) -> Result<[u8; 32]> {
-    let mut key = [0u8; 32];
-    let argon2 = Argon2::default();
-    let effective_salt = if salt.len() < 8 {
-        let mut hasher = Sha256::new();
-        hasher.update(salt);
-        hasher.finalize().to_vec()
-    } else {
-        salt.to_vec()
-    };
-    argon2
-        .hash_password_into(password.as_bytes(), &effective_salt, &mut key)
-        .map_err(|e| anyhow!("Argon2 key derivation failed: {}", e))?;
-    Ok(key)
+    Ok(bitbid_core::wallet_codec::derive_key(password, salt)?)
 }
 
 pub fn encrypt_wallet(data_str: &str, password: &str) -> Result<String> {
-    let mut salt = [0u8; 16];
-    OsRng.fill_bytes(&mut salt);
-    let key = derive_key(password, &salt)?;
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| anyhow!("invalid cipher key length"))?;
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-    let cipher_text = cipher
-        .encrypt(&nonce, data_str.as_bytes())
-        .map_err(|_| anyhow!("wallet encryption failed"))?;
-    Ok(format!(
-        "{}:{}:{}",
-        BASE64_STANDARD.encode(salt),
-        BASE64_STANDARD.encode(nonce),
-        BASE64_STANDARD.encode(cipher_text)
-    ))
+    Ok(bitbid_core::wallet_codec::encrypt_wallet(data_str, password, &WalletOsRandom)?)
 }
 
 pub fn decrypt_wallet(encrypted_str: &str, password: &str) -> Result<String> {
-    let parts: Vec<&str> = encrypted_str.split(':').collect();
-    if parts.len() == 3 {
-        let salt = BASE64_STANDARD
-            .decode(parts[0])
-            .map_err(|_| anyhow!("Invalid salt base64"))?;
-        let key = derive_key(password, &salt)?;
-        let cipher = Aes256Gcm::new_from_slice(&key)
-            .map_err(|_| anyhow!("invalid cipher key"))?;
-        let decoded_nonce = BASE64_STANDARD
-            .decode(parts[1])
-            .map_err(|_| anyhow!("Invalid nonce base64"))?;
-        let nonce = Nonce::from_slice(&decoded_nonce);
-        let cipher_text = BASE64_STANDARD
-            .decode(parts[2])
-            .map_err(|_| anyhow!("Invalid ciphertext base64"))?;
-        let plaintext = cipher
-            .decrypt(nonce, cipher_text.as_ref())
-            .map_err(|_| BsecError::InvalidPassword)?;
-        let text_str = String::from_utf8(plaintext).map_err(|e| anyhow!("UTF8 decode error: {}", e))?;
-        Ok(text_str)
-    } else {
-        Err(anyhow!("Invalid encrypted wallet format"))
-    }
+    let mut plaintext = bitbid_core::wallet_codec::decrypt_wallet(encrypted_str, password)
+        .map_err(|error| match error {
+            bitbid_core::wallet_codec::WalletCodecError::InvalidPassword => anyhow!(BsecError::InvalidPassword),
+            other => anyhow!(other),
+        })?;
+    Ok(std::mem::take(&mut *plaintext))
 }
 
-/// Append `s` as a JSON string literal (quoted + escaped) directly into `out`.
-/// Writes byte-by-byte into the caller's buffer so a secret value never lands in a
-/// separate, un-zeroized allocation (as `format!`/`serde_json::Value` would).
-fn json_escape_into(out: &mut String, s: &str) {
-    out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => {
-                out.push_str("\\u");
-                for shift in [12u32, 8, 4, 0] {
-                    let nib = (c as u32 >> shift) & 0xf;
-                    out.push(char::from_digit(nib, 16).unwrap_or('0'));
-                }
-            }
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-}
-
-/// Render a wallet as a pretty JSON object into a `Zeroizing<String>`, optionally including
-/// the private key and/or mnemonic. Secrets are written straight into a single pre-sized
-/// buffer — never routed through `serde_json::Value` or `serde_json::to_string` (whose
-/// internal buffer growth leaves freed, un-zeroized plaintext copies). The buffer is reserved
-/// once with enough headroom that no reallocation occurs, so the only heap residence of the
-/// plaintext is this buffer, which is wiped on drop.
-///
-/// With both flags set the output carries every `WalletInfo` field, so it round-trips through
-/// `serde_json::from_str::<WalletInfo>` — this is also the on-disk serialization used at init.
-pub fn render_wallet_json(
-    info: &WalletInfo,
-    include_private_key: bool,
-    include_mnemonic: bool,
-) -> Zeroizing<String> {
-    let cap = 1024
-        + info.address.len()
-        + info.public_key.len()
-        + info.user_id.as_deref().map_or(0, str::len)
-        + if include_private_key { info.private_key.len() } else { 0 }
-        + if include_mnemonic { info.mnemonic.len() } else { 0 };
-    let mut out = Zeroizing::new(String::with_capacity(cap));
-    let o: &mut String = &mut out;
-
-    o.push_str("{\n");
-    o.push_str("  \"address\": ");
-    json_escape_into(o, &info.address);
-    o.push_str(",\n  \"public_key\": ");
-    json_escape_into(o, &info.public_key);
-    o.push_str(",\n  \"created_at\": ");
-    o.push_str(&info.created_at.to_string());
-    o.push_str(",\n  \"last_accessed\": ");
-    o.push_str(&info.last_accessed.to_string());
-    o.push_str(",\n  \"user_id\": ");
-    match &info.user_id {
-        Some(uid) => json_escape_into(o, uid),
-        None => o.push_str("null"),
-    }
-    if include_private_key {
-        o.push_str(",\n  \"private_key\": ");
-        json_escape_into(o, &info.private_key);
-    }
-    if include_mnemonic {
-        o.push_str(",\n  \"mnemonic\": ");
-        json_escape_into(o, &info.mnemonic);
-    }
-    o.push_str("\n}");
-    out
+/// Render into one guarded buffer without cloning the native wallet's secret fields.
+pub fn render_wallet_json(info: &WalletInfo, include_private_key: bool, include_mnemonic: bool) -> Zeroizing<String> {
+    bitbid_core::wallet_codec::render_wallet_json(&bitbid_core::wallet_codec::WalletFields {
+        address: &info.address,
+        public_key: &info.public_key,
+        private_key: &info.private_key,
+        mnemonic: &info.mnemonic,
+        created_at: info.created_at,
+        last_accessed: info.last_accessed,
+        user_id: info.user_id.as_deref(),
+    }, include_private_key, include_mnemonic)
 }
 
 pub fn generate_mnemonic() -> Result<String> {
-    let mut entropy = [0u8; 16];
-    OsRng.fill_bytes(&mut entropy);
-    let mnemonic = bip39::Mnemonic::from_entropy(&entropy).map_err(|e| anyhow!("mnemonic generation failed: {}", e))?;
-    Ok(mnemonic.to_string())
+    let mut mnemonic = bitbid_core::wallet_codec::generate_mnemonic(&WalletOsRandom)?;
+    Ok(std::mem::take(&mut *mnemonic))
 }
 
 pub fn init_wallet(
@@ -329,42 +227,17 @@ pub fn init_wallet(
 
     let mnemonic_str = match import_mnemonic {
         Some(m) => {
-            let _parsed = bip39::Mnemonic::parse(&m)
+            bitbid_core::wallet_codec::validate_mnemonic(&m)
                 .map_err(|e| BsecError::InvalidMnemonic(e.to_string()))?;
             m
         }
         None => generate_mnemonic()?,
     };
 
-    let parsed_mnemonic = bip39::Mnemonic::parse(&mnemonic_str)
-        .map_err(|e| anyhow!("Failed to parse mnemonic: {}", e))?;
-    let seed = parsed_mnemonic.to_seed("");
-
-    // Standard BIP-44 Ethereum path. Any derivation failure is a hard error: silently
-    // falling back to a raw seed slice would produce a DIFFERENT (non-standard) key/address
-    // than the mnemonic implies, stranding funds and making secrets un-decryptable.
-    let derivation_path = "m/44'/60'/0'/0/0";
-    let path = derivation_path
-        .parse::<bip32::DerivationPath>()
-        .map_err(|e| anyhow!("Invalid derivation path '{}': {}", derivation_path, e))?;
-    let xprv = bip32::XPrv::derive_from_path(seed, &path)
-        .map_err(|e| anyhow!("BIP-32 HD key derivation failed for path {}: {}", derivation_path, e))?;
-    let secret_key = k256::SecretKey::from_slice(&xprv.private_key().to_bytes())
-        .map_err(|e| anyhow!("Failed to derive secp256k1 key: {}", e))?;
-
-    let public_key = secret_key.public_key();
-
-    let priv_bytes = secret_key.to_bytes();
-    let pub_bytes = public_key.to_encoded_point(false);
-
-    let private_key = format!("0x{}", bytes_to_hex(&priv_bytes));
-    let public_key_str = format!("0x{}", bytes_to_hex(pub_bytes.as_bytes()));
-
-    let uncompressed_pub = &pub_bytes.as_bytes()[1..];
-    let pub_hash = crate::blockchain::keccak256(uncompressed_pub);
-    let mut addr_bytes = [0u8; 20];
-    addr_bytes.copy_from_slice(&pub_hash[12..32]);
-    let address = crate::blockchain::bytes_to_checksum_address(&addr_bytes);
+    let mut keys = bitbid_core::wallet_codec::derive_wallet_keys(&mnemonic_str)?;
+    let private_key = std::mem::take(&mut *keys.private_key);
+    let public_key_str = keys.public_key;
+    let address = keys.address;
     let now = current_timestamp();
 
     let wallet_info = WalletInfo {
@@ -445,6 +318,23 @@ pub fn get_wallet_info(password: Option<&str>) -> Result<WalletInfo> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn frozen_codec_wrappers_preserve_kdf_json_and_invalid_password_type() {
+        let vector: serde_json::Value = serde_json::from_str(include_str!("../../bitbid-core/tests/vectors/wallet-codec-v1.json")).unwrap();
+        let password = vector["password"].as_str().unwrap();
+        let encrypted = vector["encrypted"].as_str().unwrap();
+        let raw = vector["plaintext"].as_str().unwrap();
+        assert_eq!(decrypt_wallet(encrypted, password).unwrap(), raw);
+        let info: WalletInfo = serde_json::from_str(raw).unwrap();
+        assert_eq!(*render_wallet_json(&info, true, true), raw);
+        let error = decrypt_wallet(encrypted, "wrong PUBLIC password").unwrap_err();
+        assert!(matches!(error.downcast_ref::<BsecError>(), Some(BsecError::InvalidPassword)));
+        for case in vector["kdf"].as_array().unwrap() {
+            let salt = hex_to_bytes(case["salt_hex"].as_str().unwrap()).unwrap();
+            assert_eq!(bytes_to_hex(&derive_key(password, &salt).unwrap()), case["key_hex"].as_str().unwrap());
+        }
+    }
 
     #[test]
     fn write_secure_file_new_creates_0600_then_refuses_overwrite() {

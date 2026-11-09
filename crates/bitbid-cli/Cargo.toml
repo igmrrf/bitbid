@@ -33,9 +33,6 @@ tempfile = "3.19.0"
 dirs = "6.0.0"
 zeroize = { version = "1.8.1", features = ["derive"] }
 rpassword = "7.3.0"
-argon2 = "0.5.3"
-bip39 = "2.1.0"
-bip32 = "0.5.3"
 k256 = { version = "0.13.4", features = ["ecdsa", "arithmetic", "ecdh"] }
 rand = "0.8.5"
 reqwest = { version = "0.12", features = ["blocking", "json", "multipart"] }

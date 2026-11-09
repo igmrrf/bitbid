@@ -24,6 +24,8 @@ def runtime_dependencies(package):
 
 # Native dependencies are owned by the CLI and adapters. Keep an explicit guard for
 # common native adapters, including ones not yet present in the CLI manifest.
+# Wallet codecs qualify argon2/bip32/bip39 as pure native/WASM libraries using
+# explicit entropy inputs; do not classify these algorithms as OS adapters.
 forbidden = (
     (runtime_dependencies(packages["bitbid-cli"])
      | runtime_dependencies(packages["bitbid-adapters"]))
@@ -31,8 +33,8 @@ forbidden = (
     - {"bitbid-core", "bitbid-adapters"}
 ) | {
     "bitbid-cli", "bitbid-adapters", "reqwest", "tokio", "dirs", "dirs-sys", "rpassword", "rtoolbox",
-    "clap", "clap_builder", "clap_complete", "tempfile", "libc", "argon2",
-    "bip32", "bip39", "yaml_serde", "alloy-provider",
+    "clap", "clap_builder", "clap_complete", "tempfile", "libc",
+    "yaml_serde", "alloy-provider",
 }
 tree = cargo(
     "tree", "--locked", "-p", "bitbid-core", "--target", "wasm32-unknown-unknown",

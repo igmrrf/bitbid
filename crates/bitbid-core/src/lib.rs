@@ -12,3 +12,4 @@ pub mod token;
 pub mod error;
 pub use error::{Error, ErrorKind, IpfsError, RpcError, StoreError};
 pub use ports::{Clock, Host, Ipfs, RandomSource, Rpc, Store, StoreKey, WriteOpts};
+pub mod wallet_codec;
