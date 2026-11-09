@@ -91,7 +91,7 @@ jobs:
         with:
           formula-name: bitbid
           homebrew-tap: igmrrf/homebrew-tap
-          download-url: <VERIFIED_RELEASE_ASSET_URL> github.ref_name }}/bitbid-mac.tar.gz
+          download-url: <VERIFIED_RELEASE_ASSET_URL>
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 ```
