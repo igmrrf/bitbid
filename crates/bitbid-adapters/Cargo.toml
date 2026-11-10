@@ -7,6 +7,7 @@ description = "Native host adapters for Bitbid's shared core"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 bitbid-core = { path = "../bitbid-core" }
+team_getrandom = { package = "getrandom", version = "=0.4.3" }
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 serde_json = "1"
 

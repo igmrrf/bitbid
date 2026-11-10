@@ -6,6 +6,14 @@ license = "MIT OR Apache-2.0"
 description = "Shared native/WASM payload protocol, cryptography and registry codecs for Bitbid"
 
 [dependencies]
+team_argon2 = { package = "argon2", version = "=0.6.0", default-features = false, features = ["alloc", "zeroize"] }
+team_hkdf = { package = "hkdf", version = "=0.13.0" }
+team_sha2 = { package = "sha2", version = "=0.11.1" }
+chacha20poly1305 = { version = "=0.11.0", default-features = false, features = ["alloc", "zeroize"] }
+ed25519-dalek = { version = "=3.0.0", default-features = false, features = ["fast", "zeroize"] }
+curve25519-dalek = { version = "=5.0.0", default-features = false, features = ["alloc", "precomputed-tables", "zeroize"] }
+hpke = { version = "=0.15.1", default-features = false, features = ["alloc", "x25519", "chacha"] }
+rand_core = { version = "=0.10.1", default-features = false }
 argon2 = { version = "=0.5.3", default-features = false, features = ["alloc", "zeroize"] }
 bip32 = { version = "=0.5.3", default-features = false, features = ["secp256k1", "std"] }
 bip39 = { version = "=2.2.2", default-features = false, features = ["std", "zeroize"] }
@@ -19,10 +27,13 @@ serde_json = "1"
 sha2 = "0.10"
 sha3 = "0.10"
 thiserror = "2"
-zeroize = "1.8.1"
+zeroize = { version = "=1.9.1", features = ["alloc"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"
+
+[dev-dependencies]
+hex = "=0.4.3"
