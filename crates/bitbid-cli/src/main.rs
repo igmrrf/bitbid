@@ -482,6 +482,10 @@ fn handle_cli_error(prefix: &str, err: anyhow::Error) -> ! {
         std::process::exit(bitbid_err.exit_code());
     }
 
+    if let Some(wallet_error) = err.downcast_ref::<bitbid_core::wallet_read::WalletReadError>() {
+        std::process::exit(wallet_error.legacy_exit_code());
+    }
+
     let code = errors::fallback_exit_code(&err.to_string());
     std::process::exit(code);
 }

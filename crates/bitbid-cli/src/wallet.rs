@@ -171,6 +171,7 @@ pub fn encrypt_wallet(data_str: &str, password: &str) -> Result<String> {
     Ok(bitbid_core::wallet_codec::encrypt_wallet(data_str, password, &WalletOsRandom)?)
 }
 
+#[allow(dead_code)] // Retained native compatibility wrapper; reader uses the guarded core result.
 pub fn decrypt_wallet(encrypted_str: &str, password: &str) -> Result<String> {
     let mut plaintext = bitbid_core::wallet_codec::decrypt_wallet(encrypted_str, password)
         .map_err(|error| match error {
@@ -290,29 +291,33 @@ pub fn init_wallet(
 }
 
 pub fn get_wallet_info(password: Option<&str>) -> Result<WalletInfo> {
+    // Keep native path selection/revalidation at the original lazy access point.
     let app_dir = get_app_dir()?;
     let wallet_path = app_dir.join("wallet.json");
-
+    // Retain the original metadata check: it intentionally classifies inaccessible
+    // symlink targets and loops as missing before the Store's readable-file check.
     if !wallet_path.exists() {
         return Err(BsecError::WalletNotFound.into());
     }
-
-    let content = fs::read_to_string(&wallet_path)?;
-    let wallet_file: WalletFile = serde_json::from_str(&content)?;
-
-    // Read-only: do NOT rewrite wallet.json here. The previous write-on-read updated
-    // `last_accessed` on every read, which raced under concurrent invocations (unsynchronized
-    // read-modify-write) and rewrote the plaintext key for unencrypted wallets. The marginal
-    // value of a read timestamp does not justify either hazard.
-    let info = if wallet_file.encrypted {
-        let pwd = password.ok_or_else(|| anyhow!("Wallet is encrypted. Password is required."))?;
-        let decrypted_json = Zeroizing::new(decrypt_wallet(&wallet_file.data, pwd)?);
-        serde_json::from_str::<WalletInfo>(&decrypted_json)?
-    } else {
-        serde_json::from_str::<WalletInfo>(&wallet_file.data)?
-    };
-
-    Ok(info)
+    let store = bitbid_adapters::store::FileStore::new([
+        (bitbid_core::StoreKey::Wallet, wallet_path),
+    ]);
+    let mut info = bitbid_core::wallet_read::read_wallet(&store, password)
+        .map_err(|error| match error {
+            bitbid_core::wallet_read::WalletReadError::Missing => anyhow!(BsecError::WalletNotFound),
+            bitbid_core::wallet_read::WalletReadError::Codec(bitbid_core::wallet_codec::WalletCodecError::InvalidPassword) => anyhow!(BsecError::InvalidPassword),
+            other => anyhow!(other),
+        })?;
+    // Move, rather than clone, the guarded result into the existing native guard.
+    Ok(WalletInfo {
+        address: std::mem::take(&mut info.address),
+        public_key: std::mem::take(&mut info.public_key),
+        private_key: std::mem::take(&mut info.private_key),
+        mnemonic: std::mem::take(&mut info.mnemonic),
+        created_at: info.created_at,
+        last_accessed: info.last_accessed,
+        user_id: info.user_id.take(),
+    })
 }
 
 #[cfg(test)]

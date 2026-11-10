@@ -3,7 +3,7 @@
 [Extract wallet codecs and reject malformed nonce lengths](https://github.com/igmrrf/bitbid/issues/32)
 adds `bitbid_core::wallet_codec`. Native `wallet.rs` delegates its KDF, encryption,
 decryption, manual JSON rendering, mnemonic generation and BIP44 derivation to
-this module. Initialization and read orchestration, filesystem paths, permissions,
+this module. Initialization, filesystem paths, permissions,
 sequential wallet/config writes, timestamps and `StoreKey` are unchanged.
 
 The format is frozen: Argon2 **0.5.3**, Argon2id v19, m19456 KiB/t2/p1/output32;
@@ -51,5 +51,5 @@ authenticated invalid UTF-8, mnemonic and private-key values.
 No new deployable setting or existing wallet data migration is required. No web
 UI route consumes this module. Rollback may remove the extraction wrappers, but
 must retain the explicit nonce-length guard to avoid restoring the known abort.
-Read-only Store integration and initialization lifecycle extraction remain
-separate tickets.
+[Read-only Store integration](wallet-read.md) is a separate extraction over these
+codecs. Initialization lifecycle extraction remains a separate ticket.

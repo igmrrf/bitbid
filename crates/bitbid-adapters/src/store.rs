@@ -10,7 +10,7 @@ use bitbid_core::{Store, StoreError, StoreKey, WriteOpts};
 
 /// A filesystem Store with no implicit home, environment, or parent creation.
 ///
-/// Only NetworkConfig and SecretIndex bindings are currently supported. Other
+/// Only Wallet, NetworkConfig and SecretIndex bindings are supported. Other
 /// keys remain unconfigured even if supplied to `new`. Reads follow symlinks;
 /// Unix writes refuse final symlinks, and removal unlinks the configured entry.
 /// Writes are not atomic replacements: a later I/O error may leave partial data.
@@ -24,7 +24,7 @@ impl FileStore {
         Self {
             paths: bindings
                 .into_iter()
-                .filter(|(key, _)| matches!(key, StoreKey::NetworkConfig | StoreKey::SecretIndex))
+                .filter(|(key, _)| matches!(key, StoreKey::Wallet | StoreKey::NetworkConfig | StoreKey::SecretIndex))
                 .collect(),
         }
     }

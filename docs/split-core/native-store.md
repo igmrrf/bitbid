@@ -1,7 +1,7 @@
 # Native mapped Store and selected list reads
 
 `bitbid_adapters::store::FileStore` implements the public synchronous `Store`
-interface for explicitly supplied `NetworkConfig` and `SecretIndex` paths. It
+interface for explicitly supplied `Wallet`, `NetworkConfig` and `SecretIndex` paths. It
 performs no environment/home selection, parent creation, JSON decoding or fallback.
 Other keys remain unconfigured, even if passed to the constructor; every method
 returns `StoreError::Io("unconfigured store key")` for them.
@@ -39,7 +39,7 @@ Local OS qualification is macOS/Unix. Private writes on non-Unix hosts fail
 explicitly because Windows ACL privacy is not implemented. The Unix descriptor
 and symlink guarantees do not establish Windows distribution-host qualification.
 
-Only the selected CLI `list` reads use this adapter. Each accessor first invokes
+Selected CLI `list` reads and [read-only wallet unlock](wallet-read.md) use this adapter. Each list accessor first invokes
 the existing lazy native path selector, then constructs its single-key Store:
 initial index enumeration; network config for each enumerated ID; index reload
 after each successful RPC, before filtering. The selected root remains cached by
@@ -51,7 +51,7 @@ Registry reads still receive only Rpc and panic-on-unused other ports. The
 selected caller now delegates filtering to the [pure list policy](registry-list-policy.md);
 its native callback retains these lazy reads and immediate error/warning behavior.
 
-Global native loaders, hide's legacy list/read/write path, wallet data, index/config
+Global native loaders, hide's legacy list/read/write path, wallet writers, index/config
 writers, IPFS/cache and signing retain their existing implementations. There is
 no data migration or write/remove cutover. Reverting only this adapter/export,
 manifest/lock additions, selected composition and tests restores the previous

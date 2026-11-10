@@ -24,19 +24,23 @@ fn store(path: &std::path::Path) -> FileStore {
 #[test]
 fn explicit_mappings_round_trip_arbitrary_bytes_absence_and_removal() {
     let dir = tempfile::tempdir().unwrap();
+    let wallet = dir.path().join("wallet");
     let config = dir.path().join("config");
     let index = dir.path().join("index");
     let store = FileStore::new([
+        (StoreKey::Wallet, wallet.clone()),
         (StoreKey::NetworkConfig, config.clone()),
         (StoreKey::SecretIndex, index.clone()),
     ]);
     let bytes = [0, 255, 128, 13, 10, 0, 42];
-    for key in [StoreKey::NetworkConfig, StoreKey::SecretIndex] {
+    for key in [StoreKey::Wallet, StoreKey::NetworkConfig, StoreKey::SecretIndex] {
         assert_eq!(store.read(&key).unwrap(), None);
         assert!(!store.exists(&key).unwrap());
         store.remove(&key).unwrap();
         store.write(&key, &bytes, WriteOpts::default()).unwrap();
-        let path = if key == StoreKey::NetworkConfig {
+        let path = if key == StoreKey::Wallet {
+            &wallet
+        } else if key == StoreKey::NetworkConfig {
             &config
         } else {
             &index
@@ -68,7 +72,7 @@ fn explicit_mappings_round_trip_arbitrary_bytes_absence_and_removal() {
 #[test]
 fn every_unconfigured_operation_fails_with_fixed_safe_payload() {
     let dir = tempfile::tempdir().unwrap();
-    let store = FileStore::new([(StoreKey::Wallet, dir.path().join("must-not-map"))]);
+    let store = FileStore::new([(StoreKey::ProjectConfig, dir.path().join("must-not-map"))]);
     for key in [
         StoreKey::Wallet,
         StoreKey::NetworkConfig,
