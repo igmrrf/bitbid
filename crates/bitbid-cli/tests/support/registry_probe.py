@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import stat
 import subprocess
 import tempfile
 import threading
@@ -138,6 +139,7 @@ def run(binary, baseline_mode=False, home_env="BITBID_HOME"):
                 else:
                     index_path.write_text(raw_index)
                 before = {p.name: p.read_bytes() for p in home.iterdir() if p.is_file()}
+                modes = {p.name: stat.S_IMODE(p.stat().st_mode) for p in home.iterdir() if p.is_file()}
                 start = len(requests)
                 out = cli('list', *flags)
                 sent = requests[start:]
@@ -148,6 +150,7 @@ def run(binary, baseline_mode=False, home_env="BITBID_HOME"):
                         for r in sent] == request_ids, (name, sent)
                 after = {p.name: p.read_bytes() for p in home.iterdir() if p.is_file()}
                 assert before == after, (name, 'list changed files')
+                assert modes == {p.name: stat.S_IMODE(p.stat().st_mode) for p in home.iterdir() if p.is_file()}, (name, 'list changed modes')
                 if wallet.exists():
                     assert wallet.read_bytes() == before['wallet.json']
                 if wallet_failure:
@@ -162,7 +165,7 @@ def run(binary, baseline_mode=False, home_env="BITBID_HOME"):
                     else:
                         assert out.stdout == expected.encode(), (name, out.stdout, expected)
                 observations.append(dict(name=name, exit=out.returncode,
-                    stdout=out.stdout.decode(errors='replace'), requests=sent,
+                    stdout=out.stdout.decode(errors='replace'), stderr=out.stderr.decode(errors='replace'), requests=sent,
                     files_unchanged=True, wallet_unchanged=True))
 
             # Multi-record fixture deliberately inserted out of BTreeMap order.
@@ -240,7 +243,7 @@ def run(binary, baseline_mode=False, home_env="BITBID_HOME"):
             out = cli('list', '--json', '--all')
             assert out.returncode == 1 and not out.stdout and out.stderr.startswith(b'Error loading wallet:')
             assert fresh.is_dir() and not list(fresh.iterdir()) and len(requests) == start
-            observations.append(dict(name='missing-home-created', exit=1, stdout='', requests=[], directory_created=True))
+            observations.append(dict(name='missing-home-created', exit=1, stdout='', stderr=out.stderr.decode(errors='replace'), requests=[], directory_created=True))
             return dict(binary=str(binary), binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
                         baseline_mode=baseline_mode, home_env=home_env, legacy_warning_checked_each_process=True, probe_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                         service=dict(address=url, pid=os.getpid(), thread=thread.name, ready=True, stopped=True,

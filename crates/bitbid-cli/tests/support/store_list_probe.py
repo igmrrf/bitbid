@@ -20,6 +20,7 @@ def run(binary, home_env):
     observations = []
     requests = []
     action = [lambda: None]
+    response = [lambda: dict(result=abi(public=True))]
     servers = []
     threads = []
     faults = []
@@ -32,7 +33,7 @@ def run(binary, home_env):
                     body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                     requests.append(dict(server=self.server_label, envelope=body))
                     action[0]()
-                    payload = json.dumps(dict(result=abi(public=True))).encode()
+                    payload = json.dumps(response[0]()).encode()
                     self.send_response(200); self.send_header('Content-Length', str(len(payload))); self.end_headers(); self.wfile.write(payload)
                 except Exception as exc:
                     faults.append(repr(exc)); self.send_error(500)
@@ -71,9 +72,9 @@ def run(binary, home_env):
                     elif stat.S_ISLNK(info.st_mode): entry['target'] = os.readlink(path)
                     inventory[path.name] = entry
                 return inventory
-            def check(name, expected_ids=(), request_ids=(), failure=False, files=True):
+            def check(name, expected_ids=(), request_ids=(), failure=False, files=True, flags=('--all',)):
                 start=len(requests); before=snapshot()
-                out=cli('list','--json','--all')
+                out=cli('list','--json',*flags)
                 assert not faults,faults
                 sent=requests[start:]
                 ids=[bytes.fromhex(x['envelope']['params'][0]['data'][10:]).rstrip(b'\0').decode() for x in sent]
@@ -144,9 +145,35 @@ def run(binary, home_env):
             assert len(requests)==start+1
             assert (wallet.read_bytes(),stat.S_IMODE(wallet.stat().st_mode))==wallet_before
             observations.append(dict(name='post-rpc-index-selection-before-hidden-filter',exit=out.returncode,stdout='',stderr=out.stderr.decode(),requests=requests[start:],real_directory_denial=True,wallet_unchanged=True))
+            # A failed first read warns/skips before the next record's config
+            # selection. Its failure does not perform the successful late read.
+            response[0]=lambda: dict(result=None)
+            action[0]=lambda: home.chmod(0)
+            config.write_text(json.dumps(cfg())); index.write_text('{"a-failed":{"hidden":true},"z-never":{}}')
+            start=len(requests)
+            try:
+                out=cli('list','--json')
+                assert out.returncode==4 and out.stdout==b'',out
+                assert out.stderr.endswith(f'Configuration error: invalid {home_env}.\n'.encode()),out.stderr
+            finally: home.chmod(0o700)
+            assert len(requests)==start+1
+            assert (wallet.read_bytes(),stat.S_IMODE(wallet.stat().st_mode))==wallet_before
+            observations.append(dict(name='failed-read-before-next-config-selection-fatal',exit=out.returncode,stdout='',stderr=out.stderr.decode(),requests=requests[start:],wallet_unchanged=True))
+            response[0]=lambda: dict(result=abi(public=True))
             action[0]=lambda: index.write_bytes(b'\xff')
             config.write_text(json.dumps(cfg()));index.write_text('{"a-first":{}}')
             check('post-rpc-index-decode-fallback',('a-first',),('a-first',),files=False)
+            # Policy uses the enumeration snapshot, even when a successful read
+            # reloads a changed index. Reloads remain mandatory for path effects.
+            action[0]=lambda: index.write_text('{"a-first":{"hidden":true},"b-second":{"hidden":true}}')
+            config.write_text(json.dumps(cfg()));index.write_text('{"a-first":{},"b-second":{}}')
+            check('enumerated-visible-stays-visible',('a-first','b-second'),('a-first','b-second'),files=False,flags=())
+            action[0]=lambda: index.write_text('{"a-first":{},"b-second":{}}')
+            index.write_text('{"a-first":{"hidden":true},"b-second":{}}')
+            check('enumerated-hidden-stays-hidden',('b-second',),('a-first','b-second'),files=False,flags=())
+            action[0]=lambda:None;index.write_text('{"a-first":{}}')
+            check('literal-public-case-insensitive',('a-first',),('a-first',),flags=('--user','PuBlIc'))
+            check('public-binary-recipient-not-projected',(),('a-first',),flags=('--user','0xde709f2102306220921060314715629080e2fb77'))
             # A selected-path failure is fatal before any config/RPC, no fallback.
             action[0]=lambda:None; home.chmod(0)
             try:
@@ -161,7 +188,14 @@ def run(binary, home_env):
         for thread in threads: thread.join(timeout=3);assert not thread.is_alive()
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--binary',required=True,type=Path);parser.add_argument('--home-env',choices=['BITBID_HOME','BSEC_HOME'],default='BITBID_HOME');parser.add_argument('--report',type=Path)
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--binary',required=True,type=Path);parser.add_argument('--home-env',choices=['BITBID_HOME','BSEC_HOME'],default='BITBID_HOME');parser.add_argument('--report',type=Path);parser.add_argument('--compare',type=Path)
     args=parser.parse_args();result=run(args.binary.resolve(),args.home_env)
+    if args.compare:
+        before=json.loads(args.compare.read_text())['observations'];after=result['observations']
+        fields=['name','exit','stdout','stderr','requests','files_unchanged','wallet_unchanged','real_directory_denial']
+        assert len(before)==len(after)
+        for left,right in zip(before,after):
+            assert {k:left[k] for k in fields if k in left}=={k:right[k] for k in fields if k in right},(left,right)
+        result['baseline_comparison']='exact outputs, stderr, exits, RPC order and file-effect assertions identical'
     if args.report:args.report.write_text(json.dumps(result,indent=2)+'\n')
     print(f"PASS {len(result['observations'])} actual filesystem/lazy CLI cases; uid {result['uid']}; loopback servers stopped")

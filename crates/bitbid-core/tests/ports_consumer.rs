@@ -486,3 +486,51 @@ fn other_port_consumers_round_trip_content_time_and_valid_key_material() {
     assert_eq!(shared.raw_secret_bytes(), reverse.raw_secret_bytes());
     assert_eq!(random.gen_key().to_bytes(), key.to_bytes());
 }
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+#[cfg_attr(not(target_arch = "wasm32"), test)]
+fn list_policy_reads_real_host_before_filters_and_preserves_raw_facts() {
+    use bitbid_core::registry_list::{ListQuery, list_indexed};
+    let mut trace = Vec::new();
+    let rows = list_indexed(
+        [("hidden", true), ("0X6964", false), ("id", false)],
+        ListQuery {
+            user_address: "0X1111111111111111111111111111111111111111",
+            filter_user: None,
+            all: false,
+            expired_only: true,
+            active_only: false,
+        },
+        |id| {
+            trace.push(id.to_owned());
+            let raw = if id == "hidden" {
+                b"hidden".as_slice()
+            } else {
+                b"id"
+            };
+            let (host, rpc) = host_for(raw, Ok(json!(bytes_to_hex(&bytes()))));
+            let result = read_registry_info(&host, &[0xab; 20], id);
+            assert_eq!(*rpc.calls.lock().unwrap(), 1);
+            result.map(Some)
+        },
+    )
+    .unwrap();
+    assert_eq!(trace, ["hidden", "0X6964", "id"]);
+    let expected = RegistryInfo {
+        sender: [0x11; 20],
+        recipient: [0x22; 20],
+        ipfs_cid: "QmTestCid123".into(),
+        created_at: 7,
+        expires_at: 3,
+        max_reads: 9,
+        read_count: 10,
+        revoked: true,
+        is_public: false,
+        is_expired: false,
+        limit_reached: true,
+    };
+    assert_eq!(
+        rows,
+        [("0X6964".into(), expected.clone()), ("id".into(), expected)]
+    );
+}

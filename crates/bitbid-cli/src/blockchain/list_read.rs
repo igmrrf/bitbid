@@ -5,7 +5,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use bitbid_adapters::{rpc::BlockingRpc, store::FileStore};
-use bitbid_core::registry_read::read_registry_info;
+use bitbid_core::registry_read::{RegistryInfo, read_registry_info};
 use bitbid_core::{
     Clock, Host, Ipfs, IpfsError, RandomSource, Store, StoreError, StoreKey, WriteOpts,
 };
@@ -39,7 +39,7 @@ fn decode_or_default<T: serde::de::DeserializeOwned + Default>(
         .unwrap_or_default()
 }
 
-pub(super) fn read(secret_id: &str) -> Result<OnChainSecretInfo> {
+pub(super) fn read(secret_id: &str) -> Result<RegistryInfo> {
     let conf = load_network_config()?;
     let registry = registry_address(&conf)?;
     let unused = Arc::new(UnusedForRegistryRead);
@@ -54,7 +54,14 @@ pub(super) fn read(secret_id: &str) -> Result<OnChainSecretInfo> {
     // List retains its legacy per-record skip policy and successful exit.
     let info = read_registry_info(&host, &registry, secret_id)
         .map_err(|error| anyhow::anyhow!(error.public_message()))?;
-    Ok(OnChainSecretInfo {
+    // The late reload retains fallback and fatal path-selection effects even
+    // though policy uses the enumeration-time hidden flag.
+    let _ = load_index()?;
+    Ok(info)
+}
+
+pub(super) fn project(info: RegistryInfo) -> OnChainSecretInfo {
+    OnChainSecretInfo {
         sender: bytes_to_checksum_address(&info.sender),
         recipient: if info.is_public {
             "public".into()
@@ -70,10 +77,8 @@ pub(super) fn read(secret_id: &str) -> Result<OnChainSecretInfo> {
         is_public: info.is_public,
         is_expired: info.is_expired,
         limit_reached: info.limit_reached,
-        hidden: load_index()?
-            .get(secret_id)
-            .is_some_and(|entry| entry.hidden),
-    })
+        hidden: false,
+    }
 }
 
 // Intentionally private and fail-stop: this composition supports Rpc only.

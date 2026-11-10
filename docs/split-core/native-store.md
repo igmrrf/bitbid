@@ -47,7 +47,9 @@ the existing selector and is revalidated each time. Its existing directory
 creation policy is retained. Path-selection failures remain fatal `ConfigError`;
 subsequent file I/O/UTF-8/JSON/schema errors preserve the original default-network
 or empty-index fallback. Empty enumeration never loads config or calls RPC.
-Registry core still receives only Rpc and panic-on-unused other ports.
+Registry reads still receive only Rpc and panic-on-unused other ports. The
+selected caller now delegates filtering to the [pure list policy](registry-list-policy.md);
+its native callback retains these lazy reads and immediate error/warning behavior.
 
 Global native loaders, hide's legacy list/read/write path, wallet data, index/config
 writers, IPFS/cache and signing retain their existing implementations. There is

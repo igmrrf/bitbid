@@ -257,9 +257,49 @@ pub(crate) fn list_registry_secrets(
     expired_only: bool,
     active_only: bool,
 ) -> Result<Vec<(String, OnChainSecretInfo)>> {
-    list_index_with(
-        list_read::load_index()?, user_address, filter_user, all, expired_only, active_only, list_read::read,
+    list_registry_index_with(
+        list_read::load_index()?,
+        bitbid_core::registry_list::ListQuery {
+            user_address,
+            filter_user,
+            all,
+            expired_only,
+            active_only,
+        },
+        list_read::read,
     )
+}
+
+fn list_registry_index_with(
+    index: Index,
+    query: bitbid_core::registry_list::ListQuery<'_>,
+    mut read: impl FnMut(&str) -> Result<bitbid_core::registry_read::RegistryInfo>,
+) -> Result<Vec<(String, OnChainSecretInfo)>> {
+    let rows = bitbid_core::registry_list::list_indexed(
+        index.iter().map(|(id, entry)| (id.as_str(), entry.hidden)),
+        query,
+        |id| match read(id) {
+            Ok(info) => Ok(Some(info)),
+            Err(error) => {
+                if matches!(
+                    error.downcast_ref::<crate::errors::BitbidError>(),
+                    Some(crate::errors::BitbidError::ConfigError(_))
+                ) {
+                    return Err(error);
+                }
+                log::warn!(
+                    "Skipping secret '{}' in listing (chain read failed): {}",
+                    id,
+                    error
+                );
+                Ok(None)
+            }
+        },
+    )?;
+    Ok(rows
+        .into_iter()
+        .map(|(id, info)| (id, list_read::project(info)))
+        .collect())
 }
 
 fn list_secrets_with(
@@ -331,6 +371,153 @@ fn list_index_with(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    thread_local! {
+        static LIST_TRACE: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+    }
+    struct ListLogger;
+    impl log::Log for ListLogger {
+        fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+            true
+        }
+        fn log(&self, record: &log::Record<'_>) {
+            if record.target() == module_path!().trim_end_matches("::tests") {
+                LIST_TRACE.with(|trace| {
+                    trace
+                        .borrow_mut()
+                        .push(format!("{}:{}", record.level(), record.args()))
+                });
+            }
+        }
+        fn flush(&self) {}
+    }
+    fn list_facts() -> bitbid_core::registry_read::RegistryInfo {
+        bitbid_core::registry_read::RegistryInfo {
+            sender: [0xaa; 20],
+            recipient: [0xbb; 20],
+            ipfs_cid: "QmFacts".into(),
+            created_at: u64::MAX,
+            expires_at: 7,
+            max_reads: u32::MAX,
+            read_count: 3,
+            revoked: true,
+            is_public: true,
+            is_expired: false,
+            limit_reached: true,
+        }
+    }
+    fn list_query() -> bitbid_core::registry_list::ListQuery<'static> {
+        bitbid_core::registry_list::ListQuery {
+            user_address: "unmatched",
+            filter_user: None,
+            all: false,
+            expired_only: false,
+            active_only: false,
+        }
+    }
+    #[test]
+    fn selected_list_warns_immediately_before_later_fatal_config_error() {
+        static LOGGER: ListLogger = ListLogger;
+        static INIT: std::sync::Once = std::sync::Once::new();
+        INIT.call_once(|| {
+            log::set_logger(&LOGGER).unwrap();
+            log::set_max_level(log::LevelFilter::Warn);
+        });
+        LIST_TRACE.with(|trace| trace.borrow_mut().clear());
+        let index = ["a-failed", "b-fatal", "c-never"]
+            .into_iter()
+            .map(|id| {
+                (
+                    id.to_owned(),
+                    IndexEntry {
+                        hidden: true,
+                        ..IndexEntry::default()
+                    },
+                )
+            })
+            .collect();
+        let error = list_registry_index_with(index, list_query(), |id| {
+            LIST_TRACE.with(|trace| trace.borrow_mut().push(format!("read:{id}")));
+            if id == "a-failed" {
+                // Text alone must not turn a skip into a fatal ConfigError.
+                Err(anyhow!("Configuration error: synthetic read failure"))
+            } else {
+                Err(
+                    crate::errors::BitbidError::ConfigError("synthetic selection failure".into())
+                        .into(),
+                )
+            }
+        })
+        .unwrap_err();
+        assert!(
+            matches!(error.downcast_ref::<crate::errors::BitbidError>(), Some(crate::errors::BitbidError::ConfigError(value)) if value == "synthetic selection failure")
+        );
+        LIST_TRACE.with(|trace| assert_eq!(*trace.borrow(), [
+            "read:a-failed",
+            "WARN:Skipping secret 'a-failed' in listing (chain read failed): Configuration error: synthetic read failure",
+            "read:b-fatal",
+        ]));
+    }
+    #[test]
+    fn selected_list_preserves_native_projection_and_original_ids() {
+        let rows = list_registry_index_with(
+            [
+                (
+                    "0X6964".into(),
+                    IndexEntry {
+                        hidden: true,
+                        ..IndexEntry::default()
+                    },
+                ),
+                ("id".into(), IndexEntry::default()),
+            ]
+            .into(),
+            bitbid_core::registry_list::ListQuery {
+                all: true,
+                ..list_query()
+            },
+            |_| Ok(list_facts()),
+        )
+        .unwrap();
+        assert_eq!(
+            rows.iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(),
+            ["0X6964", "id"]
+        );
+        for (_, info) in rows {
+            assert_eq!(
+                serde_json::to_value(info).unwrap(),
+                serde_json::json!({
+                    "sender": bytes_to_checksum_address(&[0xaa; 20]), "recipient": "public",
+                    "ipfs_cid": "QmFacts", "created_at": u64::MAX, "expires_at": 7,
+                    "max_reads": u32::MAX, "read_count": 3, "revoked": true,
+                    "is_public": true, "is_expired": false, "limit_reached": true, "hidden": false,
+                })
+            );
+        }
+        let mut private = list_facts();
+        private.is_public = false;
+        let native = list_read::project(private);
+        assert_eq!(native.recipient, bytes_to_checksum_address(&[0xbb; 20]));
+        assert!(!native.is_public);
+        assert!(!native.hidden);
+    }
+    #[test]
+    fn selected_empty_list_never_calls_reader_and_all_failed_is_successful() {
+        assert!(
+            list_registry_index_with(Index::new(), list_query(), |_| {
+                panic!("empty list selected config/RPC")
+            })
+            .unwrap()
+            .is_empty()
+        );
+        let rows = list_registry_index_with(
+            [("id".into(), IndexEntry::default())].into(),
+            list_query(),
+            |_| Err(anyhow!("synthetic unavailable")),
+        )
+        .unwrap();
+        assert!(rows.is_empty());
+    }
 
     #[test]
     fn valid_0x_64hex_decodes_to_32_bytes() {
