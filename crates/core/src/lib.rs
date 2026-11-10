@@ -7,3 +7,8 @@ pub mod seal;
 pub use bitbid_core::protocol;
 pub use registry::{DecodeError, RegistryRecord};
 pub use seal::TokenError;
+
+/// The shared versioned team-vault protocol; explicit, separate from old seal formats.
+pub use bitbid_core::team_vault;
+#[cfg(target_arch = "wasm32")]
+pub mod team_entropy;
