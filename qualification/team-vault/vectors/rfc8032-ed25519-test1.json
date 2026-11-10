@@ -1,0 +1,13 @@
+{
+  "provenance": {
+    "source": "https://www.rfc-editor.org/rfc/rfc8032.txt",
+    "section": "7.1 TEST1",
+    "source_sha256": "ed63657ff389301282b169b0abde9b5dd2c7e4d524fdfa5da6ff3094fc93c4c3",
+    "method": "exact field extraction from published RFC; no cryptographic generation"
+  },
+  "algorithm": "Ed25519",
+  "seed": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+  "public": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+  "message": "",
+  "signature": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
+}

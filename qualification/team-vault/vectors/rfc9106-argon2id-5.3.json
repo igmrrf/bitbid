@@ -1,0 +1,19 @@
+{
+  "provenance": {
+    "source": "https://www.rfc-editor.org/rfc/rfc9106.txt",
+    "section": "5.3",
+    "source_sha256": "855c06f060379e34285e83a217e9069b5c72e161a1e54df9af5cd88dbb231f31",
+    "method": "exact field extraction from published RFC; no cryptographic generation"
+  },
+  "algorithm": "argon2id",
+  "version": 19,
+  "memory_kib": 32,
+  "time_cost": 3,
+  "parallelism": 4,
+  "password": "0101010101010101010101010101010101010101010101010101010101010101",
+  "salt": "02020202020202020202020202020202",
+  "secret": "0303030303030303",
+  "associated_data": "040404040404040404040404",
+  "output": "0d640df58d78766c08c037a34a8b53c9d01ef0452d75b65eb52520e96b01e659",
+  "warning": "primitive KAT only: distinct from production65536KiB/no-secret/no-associated-data profile"
+}

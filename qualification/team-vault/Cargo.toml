@@ -1,0 +1,39 @@
+[package]
+name = "bitbid-team-vault-qualification"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+argon2 = { version = "=0.6.0", default-features = false, features = ["alloc", "zeroize"] }
+base64 = "=0.22.1"
+chacha20poly1305 = { version = "=0.11.0", default-features = false, features = ["alloc", "zeroize"] }
+curve25519-dalek = { version = "=5.0.0", default-features = false, features = ["alloc", "precomputed-tables", "zeroize"] }
+ed25519-dalek = { version = "=3.0.0", default-features = false, features = ["fast", "zeroize"] }
+getrandom = { version = "=0.4.3", features = ["wasm_js"] }
+hex = "=0.4.3"
+hkdf = "=0.13.0"
+hpke = { version = "=0.15.1", default-features = false, features = ["alloc", "x25519", "chacha"] }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.154"
+sha2 = "=0.11.1"
+wasm-bindgen = "=0.2.129"
+zeroize = { version = "=1.9.1", features = ["alloc"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies.rand_core]
+version = "=0.10.1"
+default-features = false

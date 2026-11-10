@@ -243,7 +243,9 @@ vault policy entry label `vault-policy`; permission entry label `permission`.
 Actions are ASCII `genesis`, `invite`, `activate`, `promote`, `demote`,
 `replace-key`, `remove`, `new-vault`, `vault-permission`, `rotate`, `transfer`,
 `delete-team`. Full state is signed kind `authority` with payload
-`T("authority", [plan, sorted_grant_refs, sorted_snapshot_refs])`.
+`T("authority", [plan, sorted_grant_refs, sorted_snapshot_refs,
+sorted_acceptance_refs])`. This is the sole authority wire payload, including
+genesis with three empty ref lists; reject a three-field authority payload.
 Grant refs contain recipient account/key IDs, vault ID, epoch and grant hash;
 snapshot refs contain vault ID, epoch and snapshot hash. Each ref is a T record
 named `grant-ref` or `snapshot-ref`. Missing/extra/duplicate refs fail closed.
@@ -270,8 +272,8 @@ Before activation, only the intended plan/anchor and grant-ref hashes need be
 delivered for acceptance; real grant ciphertext stays with the grantor until
 the activation payload. Acceptance acknowledges the verified role plan/grant set and
 proves signing-key possession; it does not prove that keys were decrypted or
-that a recovery file was durably saved. Final `authority` payload has a fourth
-field, sorted_acceptance_refs, whose `acceptance-ref` entry fields are recipient
+that a recovery file was durably saved. The fourth field in the sole `authority`
+payload is sorted_acceptance_refs; its `acceptance-ref` entry fields are recipient
 account ID,key ID,acceptance wire hash, sorted by (account ID,key ID).
 `proposal_plan_hash` is the same final plan hash; proofs and grant hashes are
 outside the plan, so no circular commitment arises.
@@ -297,6 +299,121 @@ the signed `authority` record with action `genesis` and the initial conditions
 above, not a separate unsigned record. A new vault's first snapshot sequence
 is1 with zero32 previous hash; subsequent snapshots increment exactly1.
 
+### Exact finalized authority transition relation
+
+The following rules are conjunctive, not examples. Let P be the previous
+finalized authority, N the candidate, and H(v) the verified current snapshot
+head for every vault in P. A live transition consumes P and all H(v), compares
+their complete wire hashes atomically, and seals those heads. Every ordinary
+snapshot between P's activation anchor and H(v) must name P's plan, except
+identical retained anchors expressly allowed below. No later snapshot naming
+P may extend a sealed head. N keeps P's team ID, names SHA256(P.wire), and has
+sequence exactly P.sequence+1 with checked u64 addition. Genesis alone has no
+P, sequence1 and zero32 previous hash. Reject a successor to `delete-team`.
+
+Roster map identity is account_id; a key ID resolves to exactly one canonical
+identity with that account ID. Permission map identity is account_id. Pending
+and removed memberships have no permissions. Every active Owner/Admin has an
+explicit read-write entry in every vault; active Members have only explicit
+read/read-write entries. Only active memberships are eligible recipients.
+Let E(N,v) be the set of (account_id,current_key_id) obtained by joining v's
+permission entries to N's active roster. For each pre-existing vault, let
+L(v)=E(P,v) minus E(N,v), using key identity as well as account identity.
+An access-loss delta is L(v) nonempty; read-write to read alone is not loss.
+Identity replacement loses the old key even if its account/role is unchanged.
+
+Apart from the common sequence/previous-hash/action/actor/ref rules, all fields
+and map entries not explicitly changed by one row below are byte-identical.
+Each named target is inferred from the unique permitted diff;
+zero/multiple targets, a no-op, combined actions, or any unlisted delta fails.
+Owner/Admin below always means active in P, with N.actor_key_id equal to that
+membership's current key and the authority signature's signer. An Admin cannot
+act on a pending/active Owner/Admin membership. A removed row is retained as a
+tombstone until an explicit `invite`; no action silently resurrects it.
+
+| Action | Eligible actor in P; exact roster delta | Exact vault-policy delta before common freeze/ref rules |
+|---|---|---|
+| `genesis` | Creator signs; exactly one active creator Owner | No vaults; all three ref lists empty |
+| `invite` | Owner/Admin; add one absent account, or change one removed account, to pending Member; Owner may instead invite a pending Admin. Bind its supplied identity; no other roster edit | No permissions for the pending target; no other policy edit |
+| `activate` | Owner/Admin for pending Member, Owner for pending Admin; exactly that pending row becomes active, same role/key | Member may receive explicitly selected vault entries (read is the initial UI default); Admin receives read-write in every vault; no other entries change |
+| `promote` | Owner; one active Member becomes Admin, same key/status | Add/upgrade only that target's entries to read-write in every vault |
+| `demote` | Owner; one active Owner becomes Admin or Member, or one active Admin becomes Member, same key/status | New Admin retains all read-write entries; new Member keeps an explicitly selected subset of its previous vaults at read or read-write; no permission increase elsewhere |
+| `replace-key` | Owner for privileged target, Owner/Admin for Member; one active row changes only key_id to the same account's distinct identity with generation strictly greater than its old generation | Permissions unchanged; old identity loss freezes each previously accessible vault |
+| `remove` | Owner for privileged target, Owner/Admin for Member; one pending/active row becomes removed, same role/key | Remove only that account's entries; pending removal has no access loss |
+| `new-vault` | Owner/Admin; roster unchanged | Add exactly one previously unused vault ID, epoch1/active/fresh commitment, all active privileged read-write entries and any explicitly selected active Member entries; existing policies unchanged |
+| `vault-permission` | Owner/Admin; roster unchanged | Exactly one active Member's entry in one existing vault is added, removed or switches read/read-write; privileged entries cannot change |
+| `rotate` | Owner/Admin; roster unchanged | Exactly one existing active or rotation-required vault advances epoch by exactly1 (checked), becomes active, changes commitment to a freshly generated key's commitment, permissions unchanged |
+| `transfer` | Owner; one other active Member/Admin becomes Owner and the actor becomes Admin or Member, both keys/statuses unchanged | Recipient gets read-write everywhere; outgoing Admin retains all read-write, outgoing Member keeps an explicit subset of its previous vaults at read/read-write; no other entries change |
+| `delete-team` | Owner; every roster row becomes removed with its existing role/key | Empty vault-policy and all three ref lists; terminal signed tombstone, not erasure of historical records |
+
+Every non-deletion result has at least one active Owner. A removed membership's
+old role supplies no powers. For `invite`, the new pending identity may be the
+account's existing identity or a replacement identity, but it gains no old or
+new epoch grant until explicit activation and the required verification. The
+existing exclusion of removed/replaced identities is evaluated against the
+current active roster, never an old row or grant.
+
+For actions other than `rotate`/`new-vault`/`delete-team`, every existing vault
+keeps its epoch/commitment; if L(v) is nonempty its phase becomes
+rotation-required, otherwise its phase is unchanged. An already frozen vault
+stays frozen. No other action can clear a freeze or remove a vault policy.
+`staging` is a local, unpublished construction phase only; no finalized signed
+authority contains phase3. `rotate` cannot change membership/access, insert or
+drop an item, or silently combine separate pending rotations. It may refresh an
+active epoch after possible disclosure. Commitments must differ, and the client
+must generate a fresh key; signatures alone cannot prove randomness/erasure.
+
+Required ref sets are computed, not selected by the caller:
+
+- **Snapshots:** exactly one `snapshot-ref` for every vault in N and no others.
+  A new vault uses its new-plan sequence1/zero-previous snapshot, with exactly
+  its label at revision1 and no ordinary items; both snapshot and label are
+  signed by N's actor. A rotated vault uses a new-plan
+  snapshot at H(v).sequence+1, previous hash SHA256(H(v).wire), new epoch, and
+  the complete replacement content relation below. Every other vault references
+  exactly H(v), same epoch, preserving its sealed current content including a
+  frozen vault's old-plan read-only head. It does not rewrite an anchor's AAD.
+- **Grants for active vaults:** exactly one `grant-ref` per E(N,v), no other
+  recipient/epoch. If the same recipient key had a selected grant in P for the
+  unchanged epoch/commitment, retain that exact ref. Every other required ref
+  is new, binds N's plan/team/vault/epoch/commitment, and is signed by N's actor
+  (an authorized Owner/Admin in P). New/rotated epochs therefore use all-new
+  grants. Ref fields must equal the referenced G fields and full-wire hash.
+- **Grants for frozen vaults:** exactly P's selected refs whose recipient key
+  remains in E(N,v), byte-identical, and no newly created grant. A newly active
+  or replaced key may have planned access but cannot receive this old epoch;
+  it waits for rotation. This never invents historical access. The old removed
+  recipient's grant remains only in immutable history, not N's current refs.
+- **Acceptances:** exactly the new active target (account_id,key_id) for
+  `activate`, `promote`, `replace-key` and `transfer`; empty for every other
+  action, including `genesis`, `new-vault` and `rotate`. Every acceptance is
+  signed by that target, names N's exact plan hash, and hashes precisely all N
+  grant refs for that recipient, including retained refs, in canonical order.
+  The list can be empty when all assigned vaults are frozen. An offline
+  already-active recipient need not accept each ordinary new-vault/rotation
+  grant; this exception cannot activate/promote/replace a membership.
+
+Check exact cardinality/identity, field binding, signatures, plan provenance,
+and old-ref equality before finalization. The authority actor's signature
+endorses the full proposed diff and its required ref sets; it does not delegate
+validation to a `grants_complete`/`verified`/`is_admin` boolean. Construction
+order is plan, grants/content/snapshots, recipient acceptances, final four-field
+authority and its signature. Plan hashes never include refs or acceptances.
+A pending proposal is only these not-yet-finalized local inputs, with no outer
+wire kind or accepted three-field authority encoding. Promotion/replacement/
+transfer leave P in force until the complete N is finalized; only `invite`
+explicitly commits a pending roster entry.
+
+For each first-sharing/replacement identity, the grantor client compares the
+complete identity/fingerprint with its trusted-channel ceremony result and
+stores the matching encrypted peer pin. Existing verified current identities
+can receive offline new-vault/rotation grants. A history verifier validates
+identity bindings, actor signatures and required recipient acceptances; it
+cannot prove that another person actually performed a human ceremony. A local
+new-grant operation requires that concrete pin comparison, not a host assertion.
+Privileged MFA and recovery save/test remain separate actual application gates;
+neither is established by an acceptance signature or an untrusted boolean.
+
 A current vault snapshot is signed kind `snapshot`, payload
 `T("snapshot", [team_id, vault_id, epoch, u64(sequence), previous_snapshot_hash,
 authority_plan_hash, sorted_content_refs])`. Each `content-ref` contains
@@ -313,7 +430,7 @@ current snapshot hash/sequence, keeps the same epoch, and changes only content
 the writer may mutate. Label/vault-policy changes remain Owner/Admin actions.
 The server atomically compares both the current authority hash and content-head
 hash when advancing this separate content pointer. Every authority transition
-also captures/CAS-checks the latest affected content heads; this seals the
+also captures/CAS-checks all latest existing vault heads as H(v); this seals the
 permitted endpoint of the prior authority's snapshot chain.
 
 Retained content/grants keep their original authenticated plan and signature.
@@ -327,6 +444,49 @@ be signed by a writer authorized under its current plan and must extend the
 previous item's revision (new item revision1). The current snapshot author is
 also authorized; they cannot introduce a different historical ref as a silent
 rollback. Explicit restore is a new authorized revision.
+
+### Complete current-content relation
+
+A snapshot's content map is keyed by **item_id alone**, across object kinds;
+(item_id,object_kind) is only its canonical sort key. There is exactly one
+zero16 entry, kind1 (label), and exactly one kind2 or kind3 entry per nonzero
+item ID. A label cannot be deleted or use a nonzero ID; an ordinary ID cannot
+have kind1, two secrets, or both a secret and tombstone. Each ref's item/kind/
+revision and vault/epoch must match its signed content header and wire hash.
+
+Let B and C be the previous head's and next head's maps keyed by item ID.
+Outside `new-vault`, keys(B) is a subset of keys(C): no existing ID may vanish,
+including tombstones. Within an unchanged active epoch, each existing ID is
+one of the following, and every new ID is a nonzero secret at revision1:
+
+| Previous -> next | Exact permitted relation |
+|---|---|
+| Any entry retained | Entire `content-ref` identical, including revision/hash/kind |
+| Label -> label | New signed kind1 content at old revision+1; Owner/Admin snapshot/content author |
+| Secret -> secret | New signed kind2 content at old revision+1 (edit or explicit restore) |
+| Secret -> tombstone | New signed kind3 `deleted` plaintext at old revision+1 (delete) |
+| Tombstone -> secret | New signed kind2 content at old revision+1 (explicit restore) |
+| Tombstone -> tombstone | Identical ref only; no same-epoch re-tombstoning/revision bump |
+
+At least one ref changes for an ordinary content-head advance. Newly introduced
+or replaced content and the snapshot bind the currently finalized plan, and
+the author is an active read-write recipient for that vault; label changes
+additionally require Owner/Admin. A snapshot may batch these permitted entry
+changes but cannot smuggle a policy/epoch change. Any unsigned metadata or
+stale plan cannot select a different historical value. If an entry reaches
+u64::MAX, any operation requiring its next revision fails before signing;
+no wrap, omission or new item ID can substitute for deleting that entry.
+
+For `rotate`, keys(C)=keys(B), kind is identical per item, every revision is
+exactly old revision+1 with checked addition, and every ref is a newly signed
+new-plan/new-epoch ciphertext with a fresh nonce. The unlocked rotating client
+must decrypt B and re-encrypt the identical label/secret/tombstone plaintexts;
+no logical add/edit/delete/restore is combined with rotation. The signer is
+the authority actor. Other recipients verify available decryption, signatures,
+context, set equality and revisions; no public proof establishes plaintext
+preservation for a recipient lacking the previous key. A missing/extra item,
+retained old ciphertext, wrong epoch, mixed kind, or overflow rejects the whole
+activation. Frozen epochs admit no content-head advance before this rotation.
 
 When marking rotation-required, retain the sealed old-epoch snapshot/grants as
 read-only anchors for remaining users; these refs intentionally name the prior
@@ -410,20 +570,133 @@ Export wire kind is `export`, signed by the exporting account key, with payload
 `T("export", [account_id, generation, export_id16, selected_vault_list,
 record_list])`. `selected-vault` fields are team_id,vault_id,epoch,snapshot_hash,
 sorted by (team ID,vault ID); each `export-record` has wire_hash32,wire_bytes,
-sorted by hash. Require a closed, duplicate-free set of all identity/wrapper/
-trust/proof/grant/snapshot/content references needed for that selected export;
-reject absent or unreferenced extra records. The exporter signature is verified
-after the identity/root binding; import never treats it as team authority.
-All contained secret-bearing records remain encrypted under the root/epoch
-wrappers above; the export manifest contains only allowed public metadata.
-Recovery-only export has an empty selected-vault list and includes its exact
-identity, pass/recovery wrappers and current encrypted trust wrapper. Require
-the pass/recovery wrappers and trust wrapper to bind the same account/generation/
-identity; missing required typed records fail. Cap total export at256 MiB and
-10000 records, streaming/bounding before allocation; offer explicit smaller
-selections rather than silently truncating. The recovery code/R is never an
-export record. Offline reading of an old saved export is distinct from server
-import and remains possible for its old key holders.
+sorted by hash. The exporter signature is verified after the identity/root
+binding; import never treats it as team authority. All contained secret-bearing
+records remain encrypted under the root/epoch wrappers above; the manifest
+contains only allowed public metadata. No recovery code/R or nested export is
+an export record. Cap the complete container at256 MiB and10000 records,
+streaming/bounding before allocation. Offer explicit smaller selections or fail
+when a complete proof cannot fit; never silently truncate it. Offline reading
+of a saved historical export differs from importing it into current server state.
+
+### Typed export roots, closure and verification
+
+An export is a **selected-current-data projection** of authenticated history,
+not a recursive dump of every hash in that history. The following table is the
+complete root/edge definition. A hash-only context commitment authenticates its
+value in its containing record but does not demand that object's bytes. It
+cannot stand in for an omitted required selected object, identity, acceptance,
+authority or snapshot proof. Validate the rules below directly; no caller-supplied
+`history_valid`/`closure_complete` boolean substitutes for proof checking.
+
+For both export modes the four account roots are exactly one `identity`, one
+`pass-wrapper`, one `recovery-wrapper` and one current `trust-wrapper` for the
+manifest's account_id/generation. The identity's key_id is the export signer;
+both account wrapper headers bind that same key_id/account/generation, and the
+trust header binds the same account/generation. Unlock must reproduce that
+identity, decrypt the trust state and validate its canonical pins. Different
+wrapper nonces do not permit duplicate roots: reject multiple records for any
+of these typed root slots, even if their wire hashes differ. The manifest
+signature authenticates which trust snapshot was saved; it makes no claim that
+an online server could not replay that snapshot later.
+
+**Recovery-only:** selected-vault list empty, record_list is exactly those four
+roots. A trust wrapper at sequence3 can have a nonzero previous hash and saved
+team/peer pins without carrying earlier trust wrappers, genesis records or peer
+identities. These trust references are saved context, not backup closure edges.
+An extra old trust wrapper or team proof is rejected in this mode.
+
+**Selected data:** selected-vault list nonempty, unique by (team_id,vault_id),
+and every selected epoch/snapshot hash must match its exact supplied snapshot.
+In addition to the same four account roots, use these deterministic team roots:
+for each and only each selected team, the included authority records must form
+one gap-free, fork-free chain from genesis to a unique terminal authority A
+(the included member with greatest sequence). The manifest's signed record_list
+commits this choice of A; it is a historical selection, not a latest-state
+claim. Its genesis wire hash must equal that team's decrypted team-pin in the
+account root's trust state. Missing pin, duplicate sequence, ambiguous plan-hash
+resolution, alternate genesis or deleted terminal state rejects the export.
+No new ceremony/online peer is required solely to export an already pinned team.
+An unrelated team's authority cannot elect itself an additional root.
+
+Each selected vault exists in A, its selected epoch equals A's policy epoch,
+and the exporter is active under that exact identity with at least read access.
+The selected snapshot is A's activation anchor or a valid ordinary continuation
+under A; when rotation-required it is exactly the frozen anchor. Include exactly
+one grant for that exporter key/vault/epoch selected by A's grant refs, including
+its proven retained-grant origin. Require successful decapsulation/commitment
+and selected-content AEAD/schema checks before declaring the backup readable.
+Failure to obtain one of these records fails that selection; a replaced key
+without a frozen old-epoch grant cannot export that epoch by asserting a role.
+
+| Included record/reference | Required outgoing edge or explicit non-edge |
+|---|---|
+| Account roots | No recursive wrapper edges. `previous_trust_wire_hash`, all peer pins and unselected team pins are context only. Selected team genesis pins are checked against the required authority genesis, not followed to extra teams. |
+| Authority A and every predecessor | Follow nonzero `previous_state_hash` to exactly one same-team authority at sequence-1, ending at sequence1/zero32 genesis. Follow **every** acceptance ref to its signed acceptance. Follow each selected vault's snapshot-ref to that snapshot when that vault exists in the state. Other vault snapshot refs and all non-root grant refs are hash-only context. |
+| Exporter's selected grant | Follow its signer key_id to an identity; resolve G.authority_plan_hash to exactly one authority in the selected team's chain. No grant is generated/re-encrypted for export, and no old-epoch/other-recipient grant body is required merely because a proof commits its hash. |
+| Selected current snapshot and selected-vault snapshot anchors | Follow each nonzero previous_snapshot_hash to exactly one same-team/vault snapshot, ending at the vault's sequence1/zero32 creation snapshot. Resolve each plan hash to exactly one authority in that team's chain and follow its signer identity. Only the selected **current** snapshot's content refs are body edges; ancestor-only content hashes are context. |
+| Selected current content | Follow each current content hash to exactly one signed content record and its signer identity; resolve its plan hash through that team's authority chain. Retained content must prove its exact first introduction and continuous selection along the supplied snapshot lineage; merely finding its hash anywhere in history is insufficient. |
+| Acceptance | Follow signer/recipient key_id to its identity; resolve proposal_plan_hash to its exact authority in the team chain. Recompute its recipient-grant-set hash from that authority's complete signed ref list. Grant hashes in that set are context unless independently selected as the exporter's current grant root. |
+| Authority roster and any other signed record | Each referenced roster key_id and each signature key_id requires exactly one `identity` whose nested identity hashes to that ID; its account/generation/key binding and self-signature are checked. Reuse one record when identities coincide. An identity has no outgoing record edge. |
+
+No `team-anchor` is a selected-data root or edge: the saved encrypted team pin
+is the bootstrap result for this backup. A fresh bootstrap without such a pin
+still requires the separate trusted-peer anchor ceremony; an export signature
+cannot create that trust. All full-wire edges require hash equality, exact kind,
+field/scope equality and unique resolution. Plan hashes resolve SHA256 of the
+nested plan, never SHA256(authority.wire); a bare plan is not an export record.
+The plan lookup contains only the required authority chain, not arbitrary
+host-provided plans or a duplicate-finalization fork with the same plan hash.
+
+For projected authority proofs, run the complete actor/roster/policy/epoch/
+phase/ref-identity/cardinality/acceptance transition rules from genesis using
+signed ref metadata. For selected vaults, additionally verify every supplied
+snapshot signature, sequence/epoch/plan, metadata-visible current-content
+map relation and sealed-head provenance. Historical hash-only content bodies
+are not evidence of decryption or plaintext preservation during a past rotation.
+All activation anchors must lie on the selected
+snapshot's single previous-hash lineage. A new-vault/rotate activation snapshot
+names that transition's plan and satisfies its creation/replacement relation.
+Any ordinary snapshot naming plan P lies strictly after P's anchor and no later
+than the next authority's sealed anchor for that vault (or the selected head
+if P is terminal). Retained identical anchors can span successive authorities;
+no old-plan snapshot may extend beyond its sealed endpoint. In an unchanged
+frozen interval anchors are identical and no content-head advance is legal.
+
+For every selected current content ref, locate its first introduction on this
+lineage, check its actual content header/signature against that introducing
+plan's writer powers and its preceding item revision/kind, and check it remained
+byte-identically selected until the exported head. A rotation reintroduces
+all entries with the new epoch/plan and checked revision+1. For the selected
+grant, locate its introduction in the authority chain, verify its actual G/
+signature and actor powers, and require identical retention at each successor
+through A with the same epoch/commitment and eligible current key. These checks
+cover actual selected bytes, not an unproved historical author list.
+
+Hash-only historical/out-of-scope bodies cannot be parsed, decapsulated or
+claimed verified by this projection. Their signed ref fields still participate
+in all map/set/diff and acceptance checks. This distinction permits offline
+verification of the selected state; it does not certify the availability or
+correct encryption of every historical/unselected object, or replace a live
+publisher's obligation to check **all** newly introduced records before atomic
+activation. Do not install a projected proof as live current authority or use
+it to skip current server import/rebase checks. No new historical key access
+is created; only the selected epoch's existing exporter grant is included.
+
+Compute closure by a bounded worklist over these typed edges, visiting each
+full-wire hash/identity once; lookups must be unique. Snapshot/authority
+predecessors decrease checked sequence numbers, so no backward cycle or missing
+ancestor is accepted. Plan lookup is into the already enumerated authority
+chain and does not recursively traverse back into its referring current object;
+it introduces no circular commitment. v1 defines no checkpoint wire kind, so
+this export profile terminates at actual genesis/creation, not an opaque
+`checkpoint_valid` flag. The4096 proof-record cap applies to the union of
+required authority, snapshot, acceptance and their identity records (shared
+records counted once); the10000 list/record caps still apply. Oversized proofs
+fail and require a separately reviewed checkpoint profile rather than an
+unchecked stop. Finally require record_list hashes to
+equal the union of the four roots and this closure, with no missing record,
+unreferenced extra, duplicate wire hash or second identity for one key_id.
 
 AEAD/signatures establish integrity relative to verified keys/authority, not
 global freshness. Live clients retain accepted head hashes/sequences in memory

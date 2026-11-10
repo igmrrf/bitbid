@@ -1,0 +1,17 @@
+{
+  "provenance": {
+    "upstream": "https://github.com/pyca/pynacl/tree/1.6.2/src/libsodium/test/default",
+    "package": "PyNaCl1.6.2sdist",
+    "archive_url": "https://files.pythonhosted.org/packages/d9/9a/4019b524b03a13438637b11538c82781a5eda427394380381af8f04f467a/pynacl-1.6.2.tar.gz",
+    "archive_sha256": "018494d6d696ae03c7e656e5e74cdfd8ea1326962cc401bcf018f1ed8436811c",
+    "source_c_sha256": "e6c8bd9b6f598e9b3fa0878348720744c65bc6b56bcb4a02e8cf01fd7af254d7",
+    "expected_exp_sha256": "44e612e499dd6c89e34390b1d42b1ff3ec660d911f53c242e56be8c3ee8715a4",
+    "case": "first tv() with AAD12; expected first130bytes of upstream .exp, no local crypto generation",
+    "bundled_source_version": "libsodium1.0.20; runtime backend must still be observed"
+  },
+  "key": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+  "nonce": "07000000404142434445464748494a4b4c4d4e4f50515253",
+  "aad": "50515253c0c1c2c3c4c5c6c7",
+  "message": "4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e",
+  "ciphertext_and_tag": "f8ebea4875044066fc162a0604e171feecfb3d20425248563bcfd5a155dcc47bbda70b86e5ab9b55002bd1274c02db35321acd7af8b2e2d25015e136b7679458e9f43243bf719d639badb5feac03f80a19a96ef10cb1d15333a837b90946ba3854ee74da3f2585efc7e1e170e17e15e563e77601f4f85cafa8e5877614e143e68420"
+}

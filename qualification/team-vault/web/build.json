@@ -1,0 +1,21 @@
+{
+  "schema_sha256": "6a9b26878f1192727e8ca6e52a9da449d21d7b8b7c45b827e601de2cd9b66d6a",
+  "profile": "argon2id19/m65536/t3/p4/salt16/out32",
+  "corpus_sha256": "04205ee43e91990522f726c56f17617664e1cfa0e031cea4e83ac87769427064",
+  "normal_max_bytes": 268435456,
+  "bounded_max_bytes": 33554432,
+  "files": {
+    "index.html": "d645425937b22452af69983cadc64485a0ab5fa0ddd991afa2fa32f0d9f888ec",
+    "main.js": "5082f82c2c34682274937175a679df6a13eeae3577e49107af861a7e8969b935",
+    "pkg/bounded/qualification.d.ts": "18651eb832ff9285832d323ec1b796395a7e238d6670a72c3453a0f71cd01e5a",
+    "pkg/bounded/qualification.js": "f7447d3c7165bd20f4123e7649e1cedf876913503965068a322651e4e7b22fb0",
+    "pkg/bounded/qualification_bg.wasm": "bc54208ff97187f939ab07d0fe807ef7df34592a70a468e439b866eed1407464",
+    "pkg/bounded/qualification_bg.wasm.d.ts": "f1c7a0747c0b191303eb72b9bf14f6121f58b128d3ba1630c6ac4867e24df99f",
+    "pkg/normal/qualification.d.ts": "18651eb832ff9285832d323ec1b796395a7e238d6670a72c3453a0f71cd01e5a",
+    "pkg/normal/qualification.js": "f7447d3c7165bd20f4123e7649e1cedf876913503965068a322651e4e7b22fb0",
+    "pkg/normal/qualification_bg.wasm": "4e377edc6cb81ff36220083e017a085439606c21a08ff53875b591d7f1399bc6",
+    "pkg/normal/qualification_bg.wasm.d.ts": "f1c7a0747c0b191303eb72b9bf14f6121f58b128d3ba1630c6ac4867e24df99f",
+    "style.css": "22b1a59629ec7a2aef7738b0f597e61c6416400c20bb96139ef65984570f4afa",
+    "worker.js": "87b79786d4bb0960fcc444324c58b0fee44d147885d59006967ce6758805506b"
+  }
+}
