@@ -9,4 +9,5 @@ python3 -m http.server 8081 --bind 127.0.0.1
 ```
 
 The source checkpoint preserves the existing visual design and assets.
-No remote or deployment target has been configured.
+The origin is `git@github.com:igmrrf/bitbid.git`, with this independent history
+on the `web/main` branch. No deployment target has been configured.
