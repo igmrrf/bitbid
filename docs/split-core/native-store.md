@@ -60,7 +60,16 @@ read path without rewriting stored data; preserve unrelated working-tree work.
 Real-OS tests live in `bitbid-adapters/tests/file_store.rs` plus the private
 before-truncation descriptor test in `src/store.rs`. Actual selected-list lazy,
 denied-access and dynamic config/index checks are in
-`bitbid-cli/tests/support/store_list_probe.py` (accepts an explicit `--binary` and
-`--home-env BITBID_HOME|BSEC_HOME`). The existing 54-case `registry_probe.py` remains
-the output/RPC oracle; both probes use disposable synthetic homes and loopback
-services and leave no service running.
+`crates/bitbid-cli/tests/support/store_list_probe.py`. From the native workspace
+root, pass the absolute path of the built CLI and the canonical home selector:
+
+```sh
+python3 crates/bitbid-cli/tests/support/store_list_probe.py \
+  --binary /absolute/path/to/bitbid --home-env BITBID_HOME
+```
+
+The probe accepts only `BITBID_HOME`. Retired environment/path inputs are ignored
+by the CLI; [alias_removal_probe.py](../../crates/bitbid-cli/tests/support/alias_removal_probe.py)
+verifies that denial/nonselection behavior. The existing 54-case
+`registry_probe.py` remains the output/RPC oracle. These probes use disposable
+synthetic homes and loopback services and leave no service running.

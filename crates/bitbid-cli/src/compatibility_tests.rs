@@ -1,5 +1,5 @@
 //! Native-only resolver fixtures run in fresh processes so OS environment, cwd,
-//! warning budgets, and cached selection exercise their production boundaries.
+//! absence of retired warnings, and cached selection exercise their production boundaries.
 use crate::{compat, ipfs, network_config, project_config, wallet};
 use std::{
     ffi::OsString,
@@ -7,13 +7,6 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Output, Stdio},
 };
-
-const HOME_WARNING: &str =
-    "Warning: BSEC_HOME is deprecated; use BITBID_HOME. Support ends at 1.0.\n";
-const JWT_WARNING: &str =
-    "Warning: BSEC_PINATA_JWT is deprecated; use BITBID_PINATA_JWT. Support ends at 1.0.\n";
-const PROJECT_WARNING: &str =
-    "Warning: .bsec.json is deprecated; use .bitbid.json. Support ends at 1.0.\n";
 
 fn child(root: &Path, case: &str) -> Command {
     let mut cmd = Command::new(std::env::current_exe().unwrap());
@@ -74,6 +67,16 @@ fn fixture() {
                 }
             }
         }
+        "home-cache" => {
+            let selected = wallet::get_app_dir().unwrap();
+            assert_eq!(selected, PathBuf::from(expected));
+            fs::create_dir("changed-cwd").unwrap();
+            std::env::set_current_dir("changed-cwd").unwrap();
+            assert_eq!(wallet::get_app_dir().unwrap(), selected);
+            fs::remove_dir(&selected).unwrap();
+            fs::write(&selected, "replaced root").unwrap();
+            assert!(wallet::get_app_dir().is_err());
+        }
         "jwt" => {
             let mut config = network_config::NetworkConfig::default();
             config.ipfs.pinning_jwt = std::env::var("N4_CONFIG").ok();
@@ -116,7 +119,18 @@ fn fixture() {
                     "Configuration error: invalid project configuration."
                 );
             }
-            if action == "save" {
+            if action == "legacy-change" {
+                fs::write(".bsec.json", "invalid retired config").unwrap();
+                assert_eq!(
+                    project_config::load_project_config()
+                        .unwrap()
+                        .and_then(|v| v.env_file)
+                        .as_deref()
+                        .unwrap_or("NONE"),
+                    expected
+                );
+            }
+            if action == "save" || action == "legacy-change" {
                 project_config::save_project_config(&config).unwrap();
             }
             if action == "refuse" {
@@ -128,7 +142,8 @@ fn fixture() {
                 );
             }
             if action == "switch" {
-                fs::write(".bitbid.json", "{}").unwrap();
+                fs::create_dir("other-cwd").unwrap();
+                std::env::set_current_dir("other-cwd").unwrap();
                 assert!(project_config::save_project_config(&config).is_err());
             }
             if action == "remove" {
@@ -145,6 +160,26 @@ fn fixture() {
             if action == "corrupt" {
                 fs::write(project_config::get_project_config_path().unwrap(), "broken").unwrap();
                 assert!(project_config::save_project_config(&config).is_err());
+            }
+        }
+        "pinata-transport" => {
+            let mut config = network_config::NetworkConfig::default();
+            config.ipfs.pinning_jwt = std::env::var("N4_CONFIG").ok();
+            match ipfs::resolve_pinning_jwt(&config) {
+                Ok(Some(jwt)) => {
+                    let certificate = fs::read(std::env::var("N4_CA").unwrap()).unwrap();
+                    assert_eq!(
+                        ipfs::pinata_transport_fixture(
+                            &jwt,
+                            &certificate,
+                            &std::env::var("N4_PROXY").unwrap()
+                        )
+                        .unwrap_or_else(|error| panic!("{error:?}")),
+                        expected
+                    );
+                }
+                Ok(None) => assert_eq!(expected, "DISABLED"),
+                Err(error) => assert_eq!(error.to_string(), expected),
             }
         }
         "upload" => match ipfs::upload_to_ipfs("{\"synthetic\":true}") {
@@ -190,7 +225,7 @@ fn nonunicode() -> OsString {
 }
 
 #[test]
-fn home_env_presence_cartesian_and_redacted_warning_budget() {
+fn home_env_presence_cartesian_ignores_all_legacy_values() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     for name in ["valid path", "different"] {
@@ -217,30 +252,16 @@ fn home_env_presence_cartesian_and_redacted_warning_budget() {
             if let Some(v) = legacy {
                 cmd.env("BSEC_HOME", v);
             }
-            let selected = canonical.as_ref().or(legacy.as_ref());
+            let selected = canonical.as_ref();
             let expected = match selected {
                 None => root.join(".bitbid").to_str().unwrap().to_owned(),
                 Some(v) if v == &valid || v == values[2].as_ref().unwrap() => {
                     v.to_str().unwrap().to_owned()
                 }
-                _ => format!(
-                    "Configuration error: invalid {}.",
-                    if canonical.is_some() {
-                        "BITBID_HOME"
-                    } else {
-                        "BSEC_HOME"
-                    }
-                ),
+                _ => "Configuration error: invalid BITBID_HOME.".into(),
             };
             cmd.env("N4_EXPECT", expected);
-            assert_ok(
-                cmd.output().unwrap(),
-                if canonical.is_none() && legacy.is_some() {
-                    HOME_WARNING
-                } else {
-                    ""
-                },
-            );
+            assert_ok(cmd.output().unwrap(), "");
         }
     }
     // Relative, spaces, and literal shell syntax are preserved rather than trimmed/expanded.
@@ -291,7 +312,7 @@ fn jwt_env_config_cartesian_validates_header_and_never_falls_back() {
                 let selected = if config_wins {
                     config.map(OsString::from)
                 } else {
-                    canonical.clone().or(legacy.clone())
+                    canonical.clone()
                 };
                 let expected = match selected.as_ref().and_then(|v| v.to_str()) {
                     Some(v) if v.trim().is_empty() => "DISABLED",
@@ -300,14 +321,7 @@ fn jwt_env_config_cartesian_validates_header_and_never_falls_back() {
                     _ => "Configuration error: invalid Pinata credential.",
                 };
                 cmd.env("N4_EXPECT", expected);
-                assert_ok(
-                    cmd.output().unwrap(),
-                    if !config_wins && canonical.is_none() && legacy.is_some() {
-                        JWT_WARNING
-                    } else {
-                        ""
-                    },
-                );
+                assert_ok(cmd.output().unwrap(), "");
             }
         }
     }
@@ -323,7 +337,7 @@ fn project_native_save_selection_revalidation_and_alternate_preservation() {
             ".bitbid.json",
             "",
         ),
-        (None, Some("{}"), ".bsec.json", PROJECT_WARNING),
+        (None, Some("{}"), ".bitbid.json", ""),
     ] {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
@@ -360,7 +374,8 @@ fn project_native_save_selection_revalidation_and_alternate_preservation() {
         }
     }
     for invalid in ["", "broken-CONTENT-SENTINEL", "[]", "{\"env_file\":4}"] {
-        for selected in [".bitbid.json", ".bsec.json"] {
+        {
+            let selected = ".bitbid.json";
             let tmp = tempfile::tempdir().unwrap();
             let path = tmp.path().join(selected);
             fs::write(&path, invalid).unwrap();
@@ -373,25 +388,18 @@ fn project_native_save_selection_revalidation_and_alternate_preservation() {
                 "Configuration error: invalid project configuration.",
             )
             .env("N4_ACTION", "refuse");
-            assert_ok(
-                cmd.output().unwrap(),
-                if selected == ".bsec.json" {
-                    PROJECT_WARNING
-                } else {
-                    ""
-                },
-            );
+            assert_ok(cmd.output().unwrap(), "");
             assert_eq!(fs::read(&path).unwrap(), invalid.as_bytes());
         }
     }
     for action in ["switch", "remove", "corrupt", "replace"] {
         let tmp = tempfile::tempdir().unwrap();
-        fs::write(tmp.path().join(".bsec.json"), "{}").unwrap();
+        fs::write(tmp.path().join(".bitbid.json"), "{}").unwrap();
         let mut cmd = child(tmp.path(), "project");
         cmd.env("N4_EXPECT", "NONE").env("N4_ACTION", action);
-        assert_ok(cmd.output().unwrap(), PROJECT_WARNING);
+        assert_ok(cmd.output().unwrap(), "");
         if action != "switch" {
-            assert!(!tmp.path().join(".bitbid.json").exists());
+            assert!(!tmp.path().join(".bsec.json").exists());
         }
     }
 }
@@ -410,17 +418,16 @@ pub(super) fn cache_path_fixture() {
 }
 
 #[test]
-fn independent_surfaces_warn_once_in_first_use_order() {
+fn retired_surfaces_are_ignored_without_warnings() {
     let tmp = tempfile::tempdir().unwrap();
     fs::create_dir(tmp.path().join("legacy")).unwrap();
     fs::write(tmp.path().join(".bsec.json"), "{}").unwrap();
     let mut cmd = child(tmp.path(), "surfaces");
     cmd.env("BSEC_HOME", tmp.path().join("legacy"))
         .env("BSEC_PINATA_JWT", "opaque-TOKEN-SENTINEL");
-    assert_ok(
-        cmd.output().unwrap(),
-        &format!("{HOME_WARNING}{PROJECT_WARNING}{JWT_WARNING}"),
-    );
+    assert_ok(cmd.output().unwrap(), "");
+    assert!(tmp.path().join(".bitbid").is_dir());
+    assert_eq!(fs::read_dir(tmp.path().join("legacy")).unwrap().count(), 0);
 }
 
 #[cfg(unix)]
@@ -430,17 +437,17 @@ fn native_save_follows_valid_symlink_and_refuses_unusable_targets() {
     let tmp = tempfile::tempdir().unwrap();
     let target = tmp.path().join("target.json");
     fs::write(&target, "{}").unwrap();
-    symlink(&target, tmp.path().join(".bsec.json")).unwrap();
+    symlink(&target, tmp.path().join(".bitbid.json")).unwrap();
     let mut cmd = child(tmp.path(), "project");
     cmd.env("N4_EXPECT", "NONE").env("N4_ACTION", "save");
-    assert_ok(cmd.output().unwrap(), PROJECT_WARNING);
-    assert!(tmp.path().join(".bsec.json").is_symlink());
+    assert_ok(cmd.output().unwrap(), "");
+    assert!(tmp.path().join(".bitbid.json").is_symlink());
     assert_eq!(
-        fs::read_link(tmp.path().join(".bsec.json")).unwrap(),
+        fs::read_link(tmp.path().join(".bitbid.json")).unwrap(),
         target
     );
     assert!(fs::read_to_string(&target).unwrap().contains("saved.env"));
-    assert!(!tmp.path().join(".bitbid.json").exists());
+    assert!(!tmp.path().join(".bsec.json").exists());
     for kind in ["dir", "dangling", "fifo", "denied-read", "denied-write"] {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join(".bitbid.json");
@@ -485,5 +492,97 @@ fn native_save_follows_valid_symlink_and_refuses_unusable_targets() {
             fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
             assert_eq!(fs::read(&path).unwrap(), b"{}");
         }
+    }
+}
+
+#[test]
+fn cached_relative_home_remains_selected_and_revalidates_usability() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cmd = child(tmp.path(), "home-cache");
+    cmd.env("BITBID_HOME", "relative-root")
+        .env("BSEC_HOME", "retired-root")
+        .env("N4_EXPECT", tmp.path().join("relative-root"));
+    assert_ok(cmd.output().unwrap(), "");
+    assert!(!tmp.path().join("retired-root").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn default_directory_cartesian_never_probes_retired_root() {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    assert_ne!(unsafe { libc::geteuid() }, 0);
+    for canonical in ["absent", "dir", "file", "dangling", "denied"] {
+        for legacy in ["absent", "dir", "file", "dangling", "denied"] {
+            let tmp = tempfile::tempdir().unwrap();
+            let make = |name: &str, kind: &str| {
+                let path = tmp.path().join(name);
+                match kind {
+                    "absent" => (),
+                    "dir" | "denied" => {
+                        fs::create_dir(&path).unwrap();
+                        if kind == "denied" {
+                            fs::set_permissions(&path, fs::Permissions::from_mode(0o0)).unwrap();
+                        }
+                    }
+                    "file" => fs::write(&path, "retained bytes").unwrap(),
+                    "dangling" => symlink("missing", &path).unwrap(),
+                    _ => unreachable!(),
+                }
+            };
+            make(".bitbid", canonical);
+            make(".bsec", legacy);
+            let retired = tmp.path().join(".bsec");
+            let before = fs::symlink_metadata(&retired)
+                .ok()
+                .map(|m| (m.permissions().mode(), m.modified().unwrap()));
+            let mut cmd = child(tmp.path(), "home");
+            cmd.env(
+                "N4_EXPECT",
+                if matches!(canonical, "absent" | "dir") {
+                    tmp.path().join(".bitbid").to_str().unwrap().to_owned()
+                } else {
+                    "Configuration error: invalid application directory.".into()
+                },
+            );
+            assert_ok(cmd.output().unwrap(), "");
+            assert_eq!(
+                fs::symlink_metadata(&retired)
+                    .ok()
+                    .map(|m| (m.permissions().mode(), m.modified().unwrap())),
+                before
+            );
+            if legacy == "denied" {
+                fs::set_permissions(&retired, fs::Permissions::from_mode(0o700)).unwrap();
+            }
+            if canonical == "denied" {
+                fs::set_permissions(
+                    tmp.path().join(".bitbid"),
+                    fs::Permissions::from_mode(0o700),
+                )
+                .unwrap();
+            }
+        }
+    }
+}
+
+#[test]
+fn malformed_retired_project_is_ignored_before_and_after_canonical_selection() {
+    for canonical in [None, Some("{}"), Some("{\"env_file\":\"canonical.env\"}")] {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join(".bsec.json"), "retired malformed data").unwrap();
+        if let Some(data) = canonical {
+            fs::write(tmp.path().join(".bitbid.json"), data).unwrap();
+        }
+        let mut cmd = child(tmp.path(), "project");
+        cmd.env(
+            "N4_EXPECT",
+            if canonical.is_some_and(|v| v.contains("canonical.env")) {
+                "canonical.env"
+            } else {
+                "NONE"
+            },
+        )
+        .env("N4_ACTION", "legacy-change");
+        assert_ok(cmd.output().unwrap(), "");
     }
 }

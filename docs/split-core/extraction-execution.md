@@ -1,5 +1,11 @@
 # Next core/adapters extraction execution contract
 
+> 2026-11-10 runtime-input update: [canonical-only selection](../rename-cutover.md)
+> removes the four automatic `BSEC_HOME`, `BSEC_PINATA_JWT`, `~/.bsec`, and
+> `.bsec.json` fallbacks immediately at 0.1.0. Legacy input cases below now mean
+> denial/nonselection without deprecated warnings. Other compatibility promises
+> (types, serialized data, crypto, token and signing formats) remain in force.
+
 **Status: agreed 2026-11-09. The user chose “go with recommendation for all 4 questions”.**
 
 Decision: [Lock the next core and adapters extraction execution contract](https://github.com/igmrrf/bitbid/issues/26), claimed by `igmrrf` on 2026-11-09. This is the only decision being worked this session. [Source inventory](extraction-inventory.md) contains factual traces and a reproduced baseline defect; [candidate tickets](extraction-candidates.md) are drafts without tracker identities. All four recommendations received an explicit live answer; no other decision is resolved by that answer.
@@ -10,7 +16,7 @@ Native `ec659bacef56555bbbbd65a9b22521b6e56dcff1`; web `149e8d48415e85b68d859abd
 
 No commit, push, publication, deployment, global install mutation or live-provider mutation is authorized. Every future implementation ticket uses a separate Codinary run: captured baseline, fresh implementer, independent current-source review, meaningful tests and actual applicable runtime evidence; at most two fix cycles. No future implementation is claimed here.
 
-Preserve protocol/token/on-chain/cryptographic bytes, KDF, schemas, wallet data, supported aliases through 0.x, selected-path revalidation, redacted warning bytes/frequency, stdout/exits and current per-record request ordering. No silent migration, merge, deletion or automatic wallet rewrite. Existing synchronous ports and Host remain unchanged in the recommended plan. Test endpoints are constructor/test injection, not new deployable environment settings.
+Preserve protocol/token/on-chain/cryptographic bytes, KDF, schemas, wallet data, supported type/data aliases, canonical selected-path revalidation, unrelated redacted warning bytes/frequency, stdout/exits and current per-record request ordering. No silent migration, merge, deletion or automatic wallet rewrite. Existing synchronous ports and Host remain unchanged in the recommended plan. Test endpoints are constructor/test injection, not new deployable environment settings.
 
 ## Q1 — Store and list (agreed)
 
@@ -57,7 +63,7 @@ Recommendation: preserve the byte port; add a native compatibility text/cache wr
 
 - Native raw transport implements current `Ipfs::add(bytes,name)` and `cat(cid)->Vec<u8>` honestly; arbitrary bytes are not secretly text-decoded/reencoded. Native constructors receive selected configuration and optional validated credentials. No env access inside adapters. Tests exercise bytes/name/route/multipart/headers exactly; existing JSON upload text multipart remains byte-identical through its compatibility wrapper.
 - Native `IpfsCompatibility` owns current upload/fetch fallback and text/cache policy for this cutover, with injected native transport/client/cache paths and existing selection hooks. CLI `upload_to_ipfs`/`fetch_from_ipfs` delegate only after the same lazy selection point. No second, disconnected production transport is acceptable: raw and compatibility methods share HTTP request construction, but preserve their distinct response decoding.
-- Preserve config-first/new/legacy JWT precedence, blank-disable/header validation, warning budget, 15-second client, Pinata then Kubo upload, exact successful-invalid-CID immediate error, and cache resolution failure versus ignored cache-write I/O distinction.
+- Preserve config-first/canonical-only JWT precedence, blank-disable/header validation, absence of retired-input warnings, 15-second client, Pinata then Kubo upload, exact successful-invalid-CID immediate error, and cache resolution failure versus ignored cache-write I/O distinction.
 - Fetch order remains CID validation → config selection → cache path → strict UTF-8 cache → Kubo → configured gateway → ipfs.io → dweb.link. HTTP text retains pinned reqwest charset/BOM/replacement behavior; non-success/request/decode errors fall through. CID policy stays 2..64 ASCII alphanumeric, not a new CID standard. Cache key stays lowercase SHA256(CID bytes) plus `.json`; cache hits still perform prior config/path selection.
 - Core can share pure CID validation. A future move of cache policy into core must preserve the decided text contract through an explicit metadata/text seam; it is retained follow-up work, not a claimed current extraction or permission to change ports silently.
 - Pinata fixed endpoint/public fallbacks must be injectable for local trap tests without new production env names. All test requests stay loopback. Status/body diagnostics must be redacted; preserve existing safe public classifications, never propagate a credential/payload into logs.

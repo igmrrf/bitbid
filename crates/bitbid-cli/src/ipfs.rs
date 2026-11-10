@@ -34,14 +34,25 @@ fn client() -> Result<Client> {
 }
 
 pub(crate) fn resolve_pinning_jwt(conf: &NetworkConfig) -> Result<Option<String>> {
-    let selected = if let Some(value) = conf.ipfs.pinning_jwt.as_ref().filter(|s| !s.trim().is_empty()) {
+    let selected = if let Some(value) = conf
+        .ipfs
+        .pinning_jwt
+        .as_ref()
+        .filter(|s| !s.trim().is_empty())
+    {
         Some(value.clone())
     } else {
-        crate::compat::env_pair("BITBID_PINATA_JWT", "BSEC_PINATA_JWT")
-            .map(|value| value.into_string().map_err(|_| crate::compat::error("invalid Pinata credential.")))
+        std::env::var_os("BITBID_PINATA_JWT")
+            .map(|value| {
+                value
+                    .into_string()
+                    .map_err(|_| crate::compat::error("invalid Pinata credential."))
+            })
             .transpose()?
     };
-    let Some(value) = selected.filter(|s| !s.trim().is_empty()) else { return Ok(None); };
+    let Some(value) = selected.filter(|s| !s.trim().is_empty()) else {
+        return Ok(None);
+    };
     // Validate the actual bearer header boundary before constructing/sending a request.
     if value.bytes().any(|byte| byte.is_ascii_control()) {
         return Err(crate::compat::error("invalid Pinata credential."));
@@ -223,6 +234,22 @@ pub(super) fn assert_cache_file_containment() {
     let malicious = "/etc/passwd";
     let path = cache_file_for(malicious).unwrap();
     assert!(path.starts_with(get_ipfs_cache_dir().unwrap()), "hash-derived cache path escaped cache dir");
+}
+
+/// Exercise the exact production Pinata request builder against an isolated TLS
+/// trap. Trust and proxy injection exist only in the test executable.
+#[cfg(test)]
+pub(super) fn pinata_transport_fixture(
+    jwt: &str,
+    certificate: &[u8],
+    proxy: &str,
+) -> Result<String> {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(3))
+        .add_root_certificate(reqwest::Certificate::from_pem(certificate)?)
+        .proxy(reqwest::Proxy::https(proxy)?)
+        .build()?;
+    pin_via_pinata(&client, jwt, "{\"synthetic\":true}")
 }
 
 #[cfg(test)]

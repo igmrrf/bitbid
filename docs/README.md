@@ -3,7 +3,7 @@
 Current source installation and operations:
 
 - [Cargo source installation](cargo.md)
-- [Rename cutover, legacy compatibility, and rollback](rename-cutover.md)
+- [Rename cutover, canonical inputs, migration, and rollback](rename-cutover.md)
 - [Encrypted environment catalog](secrets-catalog.md)
 - [Shared protocol](split-core/implemented-shared-protocol.md)
 - [Verification strategy](split-core/verification-strategy.md)

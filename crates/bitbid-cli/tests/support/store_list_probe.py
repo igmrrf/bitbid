@@ -49,11 +49,7 @@ def run(binary, home_env):
             env.update(HOME=str(root), BITBID_E2E='0'); env[home_env]=str(home)
             def cli(*args):
                 result = subprocess.run([str(binary),*args],cwd=root,env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
-                warning = b'Warning: BSEC_HOME is deprecated; use BITBID_HOME. Support ends at 1.0.\n'
-                if home_env == 'BSEC_HOME':
-                    assert result.stderr.startswith(warning) and result.stderr.count(warning)==1, result.stderr
-                    result.stderr=result.stderr[len(warning):]
-                else: assert warning not in result.stderr
+                assert b'deprecated' not in result.stderr, result.stderr
                 return result
             mnemonic=root/'mnemonic'; mnemonic.write_text(MNEMONIC)
             init=cli('init','--no-encryption','--import-mnemonic',str(mnemonic)); assert init.returncode==0,init.stderr
@@ -188,7 +184,7 @@ def run(binary, home_env):
         for thread in threads: thread.join(timeout=3);assert not thread.is_alive()
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--binary',required=True,type=Path);parser.add_argument('--home-env',choices=['BITBID_HOME','BSEC_HOME'],default='BITBID_HOME');parser.add_argument('--report',type=Path);parser.add_argument('--compare',type=Path)
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--binary',required=True,type=Path);parser.add_argument('--home-env',choices=['BITBID_HOME'],default='BITBID_HOME');parser.add_argument('--report',type=Path);parser.add_argument('--compare',type=Path)
     args=parser.parse_args();result=run(args.binary.resolve(),args.home_env)
     if args.compare:
         before=json.loads(args.compare.read_text())['observations'];after=result['observations']

@@ -13,14 +13,17 @@ copied, or logged by these tools.
 ## Inventory
 
 Every listed environment entry must exist in the catalog, even when unset.
-Required catalog coverage does not mean a runtime value is required.
+Required catalog coverage does not mean a runtime value is required. The two
+`BSEC_*` entries are retained historical inventory, not active fallbacks; their
+status reports describe stored inventory only. No new setting or secret value is
+introduced by the immediate canonical-only cutover. See [migration and rollback](rename-cutover.md).
 
 | Catalog name | Runtime purpose and requirement |
 | --- | --- |
-| `BSEC_HOME` | Legacy optional home override, used only when `BITBID_HOME` is absent. |
-| `BITBID_HOME` | Canonical optional home override; otherwise select `~/.bitbid`, or legacy `~/.bsec` in place when canonical is absent. |
-| `BSEC_PINATA_JWT` | Legacy optional Pinata credential, after nonblank config and only when `BITBID_PINATA_JWT` is absent. |
-| `BITBID_PINATA_JWT` | Canonical optional Pinata credential after nonblank config. A present blank value disables the env source and suppresses the legacy alias. |
+| `BSEC_HOME` | Retired inventory only; ignored by runtime, with encrypted values preserved. |
+| `BITBID_HOME` | Canonical optional home override; otherwise select `~/.bitbid` only. |
+| `BSEC_PINATA_JWT` | Retired inventory only; ignored by runtime, with encrypted values preserved. |
+| `BITBID_PINATA_JWT` | Canonical optional Pinata credential after nonblank config. A present blank value disables the env source. |
 | `DOTENV_PASS` | Unchanged optional encryption password source; another supported password source is required when actually encrypting/decrypting an env file. |
 | `DOTENV_<ENV>_PASS` | Unchanged dynamic password family. This is a coverage marker with no runtime value; add concrete deployed names such as `DOTENV_STAGING_PASS` separately. File-name-derived `DOTENV_ENV_*_PASS` and trimmed forms are the same family. |
 | `ipfs.pinning_jwt` in `network_config` | Optional JSON config credential, takes priority over env. Config absent/null/blank plus blank/unset env sources disables Pinata. |
@@ -88,7 +91,7 @@ The decrypted schema has exactly `schema_version: 1`, `settings`, and
 null|string}`. All six environment names/patterns above are required;
 `network_config` requires `ipfs.pinning_jwt`. `unset` and `demo` allow only
 null/empty/whitespace values. Nonempty demo values are rejected, including both
-env credential aliases and the config credential. `configured` requires a
+current/retired env credential inventory and the config credential. `configured` requires a
 nonblank value; nonblank JWTs must be safe HTTP header text. Demo status is
 metadata and is never a fake JWT. The pattern marker cannot hold a password.
 

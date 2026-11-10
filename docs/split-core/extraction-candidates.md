@@ -1,5 +1,11 @@
 # Extraction implementation ticket contracts
 
+> 2026-11-10 runtime-input update: [canonical-only selection](../rename-cutover.md)
+> removes the four automatic `BSEC_HOME`, `BSEC_PINATA_JWT`, `~/.bsec`, and
+> `.bsec.json` fallbacks immediately at 0.1.0. Legacy input cases below now mean
+> denial/nonselection without deprecated warnings. Other compatibility promises
+> (types, serialized data, crypto, token and signing formats) remain in force.
+
 The user approved all four recommendations in [the execution contract](extraction-execution.md) on 2026-11-09. These sections are normal implementation ticket bodies; letters are local references, not tracker IDs. Tracker links are added only after creation. All depend directly or transitively on [Lock the next core and adapters extraction execution contract](https://github.com/igmrrf/bitbid/issues/26). No implementation is established by this document.
 
 Each ticket uses its own Codinary brief/baseline/implementer/independent review/evidence, max two fix cycles. Execution is serialized where CLI/manifests/persistence ownership overlaps. Only true code prerequisites become native blocking edges; listing order is an execution preference, not an invented dependency. Independent tests/research may proceed read-only. All checks below are required pre_release unless explicitly described as conditional. Local builds and owned installations only; no external release or provider mutation. Rollback means reverse only that ticket's owned patch, retain initial Homebrew/.DS_Store/other work, and rerun affected checks; no user-data migration/rewrite or repository reset.
@@ -46,7 +52,7 @@ Rollback only new core policy/export and selected caller, not A or legacy helper
 
 - `C-AC1`: honest public Ipfs bytes add/cat with arbitrary-byte consumer tests; shared request construction and compatibility wrapper retain current text multipart bytes/name/response schema. Sync ports unchanged. Pinata/Kubo credentials/config are injected after current native selection.
 - `C-AC2`: preserve 15s/fallback order, valid-response-invalid-CID immediate error, current CID acceptance, strict cache UTF-8 versus HTTP charset/BOM/lossy text, cache hash/extension, config/path-before-cache order, cache-path fatal versus write-I/O ignored semantics. No strict final UTF-8 conversion replaces current behavior.
-- `C-AC3`: config/canonical/legacy JWT selection, empty disable/header errors and exact warning budget remain native and lazy. All-source unset/demo/error paths make no authenticated request; logs/errors contain no JWT/payload. No new deployable setting to redirect tests.
+- `C-AC3`: config/canonical-only JWT selection, ignored legacy inputs, empty disable/header errors and absence of retired-input warnings remain native and lazy. All-source unset/demo/error paths make no authenticated request; logs/errors contain no JWT/payload. No new deployable setting to redirect tests.
 - `C-AC4`: differential baseline/final loopback Pinata/Kubo/configured/public gateway traps, malformed bytes/charset/BOM/status/decode/timeout/CID cases and real cache permission/symlink failures pass. Final release/install offline token journeys and owned local share/fetch fixture reach the new wiring; V1–V5 pass independently.
 
 All fallback endpoints must be redirected/injected before requests; public network is forbidden in fixtures. Rollback CLI delegation/modules only; no cache migration, rewrite-on-read or protocol change. Shared core cache relocation remains an explicit included follow-up requiring a byte/text metadata seam, not silently claimed here.

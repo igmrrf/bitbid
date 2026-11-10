@@ -102,13 +102,7 @@ def run(binary, baseline_mode=False, home_env="BITBID_HOME"):
             def cli(*args):
                 result = subprocess.run([str(binary), *args], cwd=root, env=env,
                                         stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
-                warning = b'Warning: BSEC_HOME is deprecated; use BITBID_HOME. Support ends at 1.0.\n'
-                if home_env == 'BSEC_HOME':
-                    assert result.stderr.startswith(warning) and result.stderr.count(warning) == 1, result.stderr
-                    # Exact N1-approved warning only; diagnostic/output/exit assertions stay intact.
-                    result.stderr = result.stderr[len(warning):]
-                else:
-                    assert warning not in result.stderr, result.stderr
+                assert b'deprecated' not in result.stderr, result.stderr
                 return result
 
             initialized = cli('init', '--no-encryption', '--import-mnemonic', str(mnemonic))
@@ -260,7 +254,7 @@ def main():
     parser.add_argument('--binary', required=True, type=Path)
     parser.add_argument('--report', type=Path)
     parser.add_argument('--baseline-mode', action='store_true')
-    parser.add_argument('--home-env', choices=['BITBID_HOME', 'BSEC_HOME'], default='BITBID_HOME')
+    parser.add_argument('--home-env', choices=['BITBID_HOME'], default='BITBID_HOME')
     parser.add_argument('--compare', type=Path)
     args = parser.parse_args()
     result = run(args.binary.resolve(), args.baseline_mode, args.home_env)

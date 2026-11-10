@@ -10,7 +10,7 @@ pub struct IpfsConfig {
     /// Kubo RPC API endpoint (local daemon or self-hosted node).
     #[serde(default = "default_ipfs_api_url")]
     pub api_url: String,
-    /// Pinata JWT for hosted pinning. Falls back to BITBID_PINATA_JWT, then its BSEC_PINATA_JWT alias.
+    /// Pinata JWT for hosted pinning. Falls back to BITBID_PINATA_JWT.
     #[serde(default)]
     pub pinning_jwt: Option<String>,
 }

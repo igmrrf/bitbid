@@ -292,4 +292,4 @@ bitbid search "API_KEY" --path .env
 - <https://github.com/jaydenwindle/senv>
 - <https://github.com/chempogonzalez/dotenv-checker>
 
-See [rename cutover and compatibility](docs/rename-cutover.md) for supported legacy inputs, installation upgrades, and scoped rollback.
+See [rename cutover and compatibility](docs/rename-cutover.md) for canonical-only environment/path selection, explicit migration, installation upgrades, and scoped rollback.

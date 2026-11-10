@@ -53,16 +53,7 @@ fn invalid() -> anyhow::Error {
 
 fn select_path() -> Result<PathBuf> {
     let cwd = std::env::current_dir().map_err(|_| invalid())?;
-    let canonical = cwd.join(".bitbid.json");
-    let legacy = cwd.join(".bsec.json");
-    if crate::compat::present(&canonical).map_err(|_| invalid())? {
-        Ok(canonical)
-    } else if crate::compat::present(&legacy).map_err(|_| invalid())? {
-        crate::compat::project_warning();
-        Ok(legacy)
-    } else {
-        Ok(canonical)
-    }
+    Ok(cwd.join(".bitbid.json"))
 }
 
 pub fn get_project_config_path() -> Result<PathBuf> {

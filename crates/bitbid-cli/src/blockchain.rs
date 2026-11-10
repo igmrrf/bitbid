@@ -2,8 +2,8 @@
 //!
 //! All state-changing operations are real signed transactions; all reads are real
 //! `eth_call`s against the configured RPC node (remote or local anvil). A local index
-//! (`secret_index.json` in the selected app home: canonical `~/.bitbid` or existing legacy
-//! `~/.bsec`, unless overridden) only enumerates the secret IDs this wallet has created or
+//! (`secret_index.json` in the selected app home: `BITBID_HOME` or `~/.bitbid`)
+//! only enumerates the secret IDs this wallet has created or
 //! viewed and tracks a local-only `hidden` flag — the authoritative state (reads,
 //! revocation, expiry, recipient) always comes from the chain.
 

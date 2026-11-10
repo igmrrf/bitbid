@@ -1,15 +1,10 @@
-//! Lazy, presence-only compatibility selection. Values and paths never enter diagnostics.
+//! Lazy canonical home selection. Values and paths never enter diagnostics.
 use crate::errors::BitbidError;
 use anyhow::Result;
-use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Once, OnceLock};
+use std::sync::OnceLock;
 
-static HOME_ENV_WARNING: Once = Once::new();
-static JWT_ENV_WARNING: Once = Once::new();
-static HOME_DIR_WARNING: Once = Once::new();
-static PROJECT_WARNING: Once = Once::new();
 static APP_DIR: OnceLock<std::result::Result<(PathBuf, &'static str), &'static str>> =
     OnceLock::new();
 
@@ -17,23 +12,7 @@ pub fn error(message: &str) -> anyhow::Error {
     BitbidError::ConfigError(message.into()).into()
 }
 
-pub fn env_pair(canonical: &str, legacy: &str) -> Option<OsString> {
-    if let Some(value) = std::env::var_os(canonical) {
-        return Some(value);
-    }
-    let value = std::env::var_os(legacy)?;
-    let warning = match legacy {
-        "BSEC_HOME" => &HOME_ENV_WARNING,
-        "BSEC_PINATA_JWT" => &JWT_ENV_WARNING,
-        _ => unreachable!("unsupported compatibility surface"),
-    };
-    warning.call_once(|| {
-        eprintln!("Warning: {legacy} is deprecated; use {canonical}. Support ends at 1.0.")
-    });
-    Some(value)
-}
-
-/// Only lexical absence permits fallback; dangling links are present.
+/// Lexical presence includes dangling links, so unusable selected paths fail closed.
 pub fn present(path: &Path) -> std::io::Result<bool> {
     match fs::symlink_metadata(path) {
         Ok(_) => Ok(true),
@@ -76,13 +55,8 @@ fn ensure_dir(path: &Path) -> std::io::Result<()> {
 }
 
 fn select_app_dir() -> std::result::Result<(PathBuf, &'static str), &'static str> {
-    let canonical_present = std::env::var_os("BITBID_HOME").is_some();
-    if let Some(value) = env_pair("BITBID_HOME", "BSEC_HOME") {
-        let message = if canonical_present {
-            "invalid BITBID_HOME."
-        } else {
-            "invalid BSEC_HOME."
-        };
+    if let Some(value) = std::env::var_os("BITBID_HOME") {
+        let message = "invalid BITBID_HOME.";
         let value = value.into_string().map_err(|_| message)?;
         if value.trim().is_empty() || value.contains('\0') {
             return Err(message);
@@ -103,18 +77,7 @@ pub(super) fn default_app_dir(home: Option<PathBuf>) -> std::result::Result<Path
 
 fn select_default_dir(home: &Path) -> std::result::Result<PathBuf, &'static str> {
     let message = "invalid application directory.";
-    let canonical = home.join(".bitbid");
-    let legacy = home.join(".bsec");
-    let path = if present(&canonical).map_err(|_| message)? {
-        canonical
-    } else if present(&legacy).map_err(|_| message)? {
-        HOME_DIR_WARNING.call_once(|| {
-            eprintln!("Warning: ~/.bsec is deprecated; use ~/.bitbid. Support ends at 1.0.")
-        });
-        legacy
-    } else {
-        canonical
-    };
+    let path = home.join(".bitbid");
     ensure_dir(&path).map_err(|_| message)?;
     Ok(path)
 }
@@ -128,10 +91,4 @@ pub fn app_dir() -> Result<PathBuf> {
         }
         Err(message) => Err(error(message)),
     }
-}
-
-pub fn project_warning() {
-    PROJECT_WARNING.call_once(|| {
-        eprintln!("Warning: .bsec.json is deprecated; use .bitbid.json. Support ends at 1.0.")
-    });
 }

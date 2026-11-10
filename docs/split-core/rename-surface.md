@@ -1,10 +1,16 @@
 # Rename surface and back-compat plan: `bsec` → `bitbid`
 
+> Current override (2026-11-10): [immediate canonical-only selection](../rename-cutover.md)
+> removes `BSEC_HOME`, `BSEC_PINATA_JWT`, `~/.bsec`, and `.bsec.json` fallbacks
+> at 0.1.0. Earlier 0.x/1.0 promises and fallback rules below are historical and
+> superseded for those four inputs only. Type aliases, stored formats, tokens and
+> cryptographic/on-chain identities retain their existing compatibility.
+
 > Historical decision/inventory at `6a0ffb8`. Current production paths, completed
 > topology/package work, exact rename/error/alias/write policy and N2–N5 criteria
 > are in [rename execution](rename-execution.md) and [acceptance](rename-acceptance.md),
 > which supersede execution details here. Accepted #13 no-binary-alias and
-> 0.x/until-1.0 compatibility rulings remain. The 668-occurrence inventory is
+> compatibility rulings were the historical decision. The 668-occurrence inventory is
 > historical; distribution URLs/names below do not prove publication.
 
 This document records the ruling from wayfinder ticket #13: the complete surface

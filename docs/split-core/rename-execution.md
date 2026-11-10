@@ -1,5 +1,11 @@
 # Rename execution contract
 
+> Current override (2026-11-10): [immediate canonical-only selection](../rename-cutover.md)
+> removes `BSEC_HOME`, `BSEC_PINATA_JWT`, `~/.bsec`, and `.bsec.json` fallbacks
+> at 0.1.0. Earlier 0.x/1.0 promises and fallback rules below are historical and
+> superseded for those four inputs only. Type aliases, stored formats, tokens and
+> cryptographic/on-chain identities retain their existing compatibility.
+
 N1 specification, 2026-11-09; no rename implementation or publication is implied.
 Current native baseline is `296ad8b7af45c50d5be27ab189263782acfd286c`; web is
 `051352370c456294bfe6f1cf6d034e13a834aadb`. This is the authoritative execution
