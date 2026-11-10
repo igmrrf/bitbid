@@ -5,6 +5,9 @@ The Rust crypto/protocol implementation is shared with the native CLI through
 `../bitsec/crates/bitbid-core`. Check out `webapp` and `bitsec` as siblings under
 BitSec before building; this repository is not standalone without that core.
 
+The origin is `git@github.com:igmrrf/bitbid.git`. This independent history is
+on `webapp/main`; the sibling native checkout uses `main` on the same origin.
+
 Use rustup-managed Cargo; `rust-toolchain.toml` pins Rust 1.98.1 and the WASM
 standard library target. The Cargo config has no workstation-specific paths.
 
