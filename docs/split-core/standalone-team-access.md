@@ -1,21 +1,19 @@
-> Versioned draft checkpoint for [Define standalone team CLI and service-account access](https://github.com/igmrrf/bitbid/issues/41).
-> Committed at the user's request to save all changes by ticket or feature; this does not resolve the open decision or turn pending choices into approvals.
-> The reviewed proposal below is preserved byte-for-byte. Its work-in-progress references describe the planning snapshot; alias removal has since completed at `b0a6b62`, and portable-core work remains unfinished.
+# Accepted standalone team CLI and scoped runner contract
 
-# Proposed standalone team CLI and scoped runner contract
-
-Status: **ready-to-review proposal; not accepted, committed, implemented or deployed**.
-Supports [Define hosted-team CLI and service-account access](https://github.com/igmrrf/bitbid/issues/41),
+Status: **accepted by final shared-understanding confirmation on 2026-11-11; implementation and deployment remain future work**.
+Supports [Define standalone team CLI and service-account access](https://github.com/igmrrf/bitbid/issues/41),
 rebased on the user's full standalone chain/IPFS direction of 2026-11-10.
 Exact registry integration belongs to
 [Design canonical on-chain teams and registry synchronization](https://github.com/igmrrf/bitbid/issues/57).
-This proposal does not turn earlier OAuth-CLI research into a requirement.
+This contract does not turn earlier OAuth-CLI research into a requirement. Its three bounded normal continuations are recorded below; no feature is delivered by this adoption.
+
+Current checkpoint: native `a43a805`, webapp `170f293`, static web `803fce9`; only primary worktrees remain. Alias removal47 is complete. Protocol50 remains independently owned frozen committed WIP at native `92c75ea` / webapp `12ff9d7`, with final qualification and independent review unfinished. The [accepted production contract](production-web-auth-hosting.md) uses optional private D1 web state; PostgreSQL/Neon/Hyperdrive and a managed IdP are not current requirements.
 
 ## Destination, scope and prerequisites
 
 The native CLI and browser offer the same team/vault capabilities allowed by
 canonical chain authority and verified client-held grants. The CLI talks directly
-to the chosen chain RPC and public IPFS; no Bitbid web host, PostgreSQL, email,
+to the chosen chain RPC and public IPFS; no Bitbid web host, D1 or any other host database, email,
 Google/GitHub, browser OAuth issuer, web cookie or server MFA session is required
 for core functionality. Its operator selects the network, verifies canonical
 registry configuration and signs necessary transactions locally. Development is
@@ -52,7 +50,7 @@ export/restore. Each operation remains unavailable until its real #57/core/key
 lifecycle prerequisites exist; a command stub or fake backend cannot count as
 parity. Explicit read/write permission and pending key delivery are enforced in
 both clients. Exact command syntax and wire/RPC DTOs are implementation-ticket
-outputs after #57, not invented APIs in this proposal.
+outputs after #57, not invented APIs in this contract.
 
 Chain signing wallet keys, protocol account encryption/signing identity and web
 login credentials are distinct. Keep each private key on its authorized client;
@@ -151,7 +149,7 @@ this complete state machine using owned fixture principals:
    proofs, unwraps only in that authorized runner and reads explicitly granted
    values. Use restrictive job-owned ciphertext paths and secret-safe process
    input rather than a private-key environment variable or command-line secret.
-   Proposed one-shot job ceiling is 15 minutes, with always-run controlled-state/
+   The accepted one-shot job ceiling is 15 minutes, with always-run controlled-state/
    file cleanup on success, cancellation or failure. This job limit is not a vault
    key TTL and cannot erase already copied keys/plaintext.
 6. **Recover/rotate:** missing/lost package or input fails closed. Prefer a newly
@@ -171,7 +169,7 @@ the ticket. Fork/untrusted pull-request code receives no secret inputs; do not r
 attacker-controlled code under a privileged event. Pin actions to reviewed immutable
 revisions. A compromised authorized job receiving both inputs can copy them; separate
 delivery does not claim protection from that compromise. No workflow is configured
-or credential installed by accepting this proposal alone.
+or credential installed by accepting this contract alone.
 
 **Cost evidence supplied by the parent, 2026-11-10:** the canonical
 `igmrrf/bitbid` repository was verified PUBLIC through the connected GitHub API.
@@ -179,7 +177,7 @@ GitHub documents free standard hosted-runner compute for public repositories;
 larger runners are charged and artifact/storage allowances are separate. The
 initial machine workflow uses only standard Ubuntu runners, uploads **no Actions
 artifacts**, keeps caches at GitHub's included/default cap, and uses no larger
-runners or paid third-party actions. This keeps the proposed initial CI compute/
+runners or paid third-party actions. This keeps the accepted initial CI compute/
 storage within included scope; it is not a configured workflow/budget or an
 unlimited-storage promise. Gas and IPFS costs remain distinct. Source:
 [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
@@ -233,7 +231,7 @@ exposure. No retroactive secrecy, secure deletion or history recall is claimed.
 
 | Acceptance | Required evidence |
 |---|---|
-| CLI-AC1 | Complete allowed parity matrix runs with the Bitbid web host/PG/IdP/email unavailable; direct RPC/IPFS and locally signed transactions are real, not mocks or a hidden server fallback. No change to historical CLI formats/behavior. |
+| CLI-AC1 | Complete allowed parity matrix runs with the Bitbid web host/D1 or other host database/web-login providers/email unavailable; direct RPC/IPFS and locally signed transactions are real, not mocks or a hidden server fallback. No change to historical CLI formats/behavior. |
 | CLI-AC2 | #57 schema/binding/current-head/finality/publication contracts and qualified core interfaces are consumed; wallet/protocol identity substitution, wrong team/epoch/key/version/signature, stale/forked proof and pending grant negatives fail. |
 | CLI-AC3 | Actual native CLI plus browser interoperate on approved vectors and complete encrypted create/read/update/delete/grant/recovery/rotation/export/restore journeys. Trusted-channel first sharing/replacement and recovery save/test gates remain. |
 | CLI-AC4 | Dedicated read-only machine identity completes trusted Owner bootstrap→protected ciphertext/separate-input persistence→full fingerprint verification→approved activation→second ephemeral-job read. Missing/wrong/tampered/substituted inputs, wrong workflow/ref, failed/canceled/uncertain activation and lost-input fresh-identity/regrant cases fail safely. Routine jobs hold no broad admin token; no private material enters host/indexer, logs/argv/caches/artifacts. Rewrapping alone never claims identity revocation. |
@@ -246,13 +244,17 @@ first. Any devnet/mainnet write must be authorized for its actual action/funding
 Freeze exact executable commands and negative fixtures in each ready implementation
 ticket, and inspect actual release/installed CLI behavior, not only unit helpers.
 All implementation work must preserve the closed #50 session's frozen unfinished
-source/ownership checkpoint and unrelated edits; do not resume or overwrite it.
+committed source/ownership checkpoint and unrelated edits; do not resume or overwrite it.
 
-## Bounded implementation continuation proposals
+## Bounded normal implementation continuations
 
-These are proposed scopes without new tracker IDs. Reconcile existing native
-extractions/key-lifecycle/browser tickets instead of equating open issues with
-unimplemented code or creating duplicates.
+| Local anchor | Actual normal continuation |
+| --- | --- |
+| CLI1 | [Standalone transport/identity adapter qualification](https://github.com/igmrrf/bitbid/issues/62) |
+| CLI2 | [Human team-vault parity journeys](https://github.com/igmrrf/bitbid/issues/63) |
+| CLI3 | [Scoped machine enrollment and runner execution](https://github.com/igmrrf/bitbid/issues/64) |
+
+These are the three actual normal continuation issues; list positions remain local cross-reference anchors. Reconcile existing native extractions/key-lifecycle/browser tickets instead of equating open issues with unimplemented code or creating duplicate first slices.
 
 1. **Standalone transport/identity adapter qualification** — own narrow native
    adapters/CLI composition and public-consumer integration fixtures only. Depends
@@ -289,11 +291,11 @@ A machine profile needs the scoped team/vault allowlist, dedicated runner identi
 a protected encrypted-credential-file input and a separately delivered unlock
 secret. Exact protected GitHub Actions input names must be confirmed against the
 existing catalog, without inventing a plaintext private-key variable. Private-key
-values and plaintext secrets must never enter this draft,
+values and plaintext secrets must never enter this contract,
 ordinary environment reports or committed fixtures. Actual deployable CI settings
 belong in encrypted `secrets/prod.enc.yaml` with unmistakable disabled safe states,
 and must pass completeness/unset reporting before ticket completion.
 
 No push, publication, deployment, live provider configuration, data migration or
-transaction occurs by accepting this proposal alone. Local commits are scoped per
+transaction occurs by accepting this contract alone. Local commits are scoped per
 completed reviewed implementation ticket under the project's existing instruction.
