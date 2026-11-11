@@ -19,6 +19,19 @@ catalog = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(catalog)
 
 
+PRODUCTION_SETTINGS = {
+    "BITBID_WEB_ORIGIN", "BITBID_WEB_AUTH_ENABLED", "BITBID_DB",
+    "BITBID_D1_DATABASE_ID", "BITBID_AUTH_GENERATION", "BITBID_TOTP_ENCRYPTION_KEY",
+    "BITBID_GOOGLE_CLIENT_ID", "BITBID_GOOGLE_CLIENT_SECRET",
+    "BITBID_GITHUB_CLIENT_ID", "BITBID_GITHUB_CLIENT_SECRET",
+    "BITBID_MAIL_FROM", "BITBID_MAIL",
+}
+LEGACY_SETTINGS = {
+    "BITBID_HOME", "BSEC_HOME", "BITBID_PINATA_JWT", "BSEC_PINATA_JWT",
+    "DOTENV_PASS", "DOTENV_<ENV>_PASS",
+}
+
+
 class CatalogTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -92,6 +105,72 @@ class CatalogTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(b"missing required entry", result.stderr)
                 self.assert_redacted(result)
+
+    def test_production_init_has_exact_disabled_inventory(self):
+        self.assertEqual(self.run_cli("init", recipient=self.recipient).returncode, 0)
+        plain = subprocess.run(["sops", "--decrypt", "--output-type", "json", str(self.path)],
+                               capture_output=True, env=self.env, check=True).stdout
+        data = json.loads(plain)
+        self.assertEqual(set(data["settings"]), LEGACY_SETTINGS | PRODUCTION_SETTINGS)
+        self.assertEqual(set(data["network_config"]), {"ipfs.pinning_jwt"})
+        self.assertEqual(len(catalog.validate(data)), 19)
+        for entry in list(data["settings"].values()) + list(data["network_config"].values()):
+            self.assertEqual(entry, {"status": "unset", "value": None})
+        report = self.run_cli("report")
+        self.assertEqual(report.returncode, 0)
+        self.assertEqual(set(report.stdout.decode().splitlines()),
+                         {name + "\tunset" for name in LEGACY_SETTINGS | PRODUCTION_SETTINGS
+                          | {"ipfs.pinning_jwt"}})
+        self.assert_redacted(report)
+
+    def test_production_roundtrip_preserves_existing_values_and_redacts_new_values(self):
+        data = catalog.empty_catalog()
+        for name in LEGACY_SETTINGS - {"DOTENV_<ENV>_PASS"}:
+            data["settings"][name] = {"status": "configured", "value": "CREDENTIAL_SENTINEL"}
+        data["settings"]["DOTENV_ENV_STAGING_PASS"] = {
+            "status": "configured", "value": "CREDENTIAL_SENTINEL"}
+        data["network_config"]["ipfs.pinning_jwt"] = {
+            "status": "configured", "value": "CREDENTIAL_SENTINEL"}
+        old_entries = {name: dict(entry) for name, entry in data["settings"].items()
+                       if name not in PRODUCTION_SETTINGS}
+        for name in PRODUCTION_SETTINGS:
+            data["settings"][name] = {"status": "configured", "value": "CREDENTIAL_SENTINEL"}
+        encrypted = self.run_cli("encrypt", data, recipient=self.recipient)
+        self.assertEqual(encrypted.returncode, 0)
+        plain = subprocess.run(["sops", "--decrypt", "--output-type", "json", str(self.path)],
+                               capture_output=True, env=self.env, check=True).stdout
+        restored = json.loads(plain)
+        self.assertEqual(restored, data)
+        self.assertEqual({name: restored["settings"][name] for name in old_entries}, old_entries)
+        for command in ("check", "report"):
+            result = self.run_cli(command)
+            self.assertEqual(result.returncode, 0)
+            self.assert_redacted(result)
+
+    def test_production_unset_demo_cannot_contain_values(self):
+        for name in PRODUCTION_SETTINGS:
+            for status in ("unset", "demo"):
+                with self.subTest(name=name, status=status):
+                    data = catalog.empty_catalog()
+                    data["settings"][name] = {"status": status, "value": "CREDENTIAL_SENTINEL"}
+                    result = self.run_cli("encrypt", data, recipient=self.recipient)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertFalse(self.path.exists())
+                    self.assert_redacted(result)
+
+    def test_unknown_production_like_names_fail_before_any_report_output(self):
+        for name in ("BITBID_CREDENTIAL_SENTINEL", "DATABASE_URL", "HYPERDRIVE"):
+            with self.subTest(name=name):
+                data = catalog.empty_catalog()
+                data["settings"][name] = {"status": "configured", "value": "CREDENTIAL_SENTINEL"}
+                self.encrypt_unchecked(data)
+                for command in ("check", "report"):
+                    result = self.run_cli(command)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.stdout, b"")
+                    self.assertIn(b"unknown setting name", result.stderr)
+                    self.assertNotIn(name.encode(), result.stderr)
+                    self.assert_redacted(result)
 
     def test_demo_credentials_rejected_before_encryption(self):
         for section, name in [("settings", "BITBID_PINATA_JWT"), ("settings", "BSEC_PINATA_JWT"),

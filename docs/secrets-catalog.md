@@ -12,7 +12,7 @@ copied, or logged by these tools.
 
 ## Inventory
 
-Every listed environment entry must exist in the catalog, even when unset.
+Every listed setting/binding entry must exist in the catalog, even when unset.
 Required catalog coverage does not mean a runtime value is required. The two
 `BSEC_*` entries are retained historical inventory, not active fallbacks; their
 status reports describe stored inventory only. No new setting or secret value is
@@ -27,6 +27,25 @@ introduced by the immediate canonical-only cutover. See [migration and rollback]
 | `DOTENV_PASS` | Unchanged optional encryption password source; another supported password source is required when actually encrypting/decrypting an env file. |
 | `DOTENV_<ENV>_PASS` | Unchanged dynamic password family. This is a coverage marker with no runtime value; add concrete deployed names such as `DOTENV_STAGING_PASS` separately. File-name-derived `DOTENV_ENV_*_PASS` and trimmed forms are the same family. |
 | `ipfs.pinning_jwt` in `network_config` | Optional JSON config credential, takes priority over env. Config absent/null/blank plus blank/unset env sources disables Pinata. |
+
+The accepted [production authentication and D1 hosting decision](split-core/production-web-auth-hosting.md) adds the following 12 exact names. All are initially `status: unset`, `value: null`; the catalog now has 18 settings plus one network-config credential. These are configuration inventory entries, not a claim that an auth runtime or live binding exists. The future implementation must require explicit auth enablement plus valid origin/store/generation/keys and applicable provider/mail prerequisites; unset/demo enablement and generation fail optional web authentication closed. Standalone CLI/chain access remains independent.
+
+| Catalog name | Kind and future requirement/safe inactive condition |
+| --- | --- |
+| `BITBID_WEB_ORIGIN` | Runtime non-secret configuration; selected trusted HTTPS origin is `https://bitbid.theldo.com`. Catalog remains unset until authorized deployment preparation. |
+| `BITBID_WEB_AUTH_ENABLED` | Runtime non-secret enablement; unset/demo is disabled, never implicit enablement. |
+| `BITBID_DB` | Scoped D1 Worker binding, not an exported environment string or connection secret. Unset means no bound store/auth. |
+| `BITBID_D1_DATABASE_ID` | Deployment selector/metadata used to wire D1, not a runtime database URL/password. Unset means no live database selection. |
+| `BITBID_AUTH_GENERATION` | Independently managed deployment configuration outside the database; unset/demo disables auth, never defaults. Rotate before private restore re-enrollment. |
+| `BITBID_TOTP_ENCRYPTION_KEY` | Runtime secret for server TOTP seeds, distinct from client vault keys; unset disables required MFA/auth. |
+| `BITBID_GOOGLE_CLIENT_ID` | Optional relying-party client configuration; unset pair disables Google sign-in/linking. |
+| `BITBID_GOOGLE_CLIENT_SECRET` | Runtime secret paired with the Google client ID. |
+| `BITBID_GITHUB_CLIENT_ID` | Optional relying-party client configuration; unset pair disables GitHub sign-in/linking. |
+| `BITBID_GITHUB_CLIENT_SECRET` | Runtime secret paired with the GitHub client ID. |
+| `BITBID_MAIL_FROM` | Verified sender configuration; unset disables email signup/reset delivery. |
+| `BITBID_MAIL` | Scoped Worker mail transport binding, not an invented API token or exported string; unset disables delivery and cannot fake success. |
+
+Binding entries record safe inactive inventory metadata; they are not serialized Worker binding objects and the report does not export them. A future deployment manifest must supply and qualify real bindings separately. No `DATABASE_URL`, Hyperdrive binding, Cloudflare API credential or OIDC issuer setting is added. Chain/RPC/registry/IPFS setting choices remain with the separate blockchain-authority decision. Resource access, production-approved encryption recipient, OAuth registrations, sender/DNS/quota, actual target qualification and deployment authorization remain prerequisites.
 
 `BITBID_E2E`, `BITBID_E2E_RPC`, `BITBID_E2E_REGISTRY`,
 `BITBID_E2E_IPFS_GATEWAY`, and `BITBID_E2E_FUNDER` belong only to the local/test
@@ -88,12 +107,12 @@ Do not put secret values in command arguments.
 
 The decrypted schema has exactly `schema_version: 1`, `settings`, and
 `network_config`. Each setting maps to `{status: unset|demo|configured, value:
-null|string}`. All six environment names/patterns above are required;
+null|string}`. All 18 exact setting names/patterns above are required;
 `network_config` requires `ipfs.pinning_jwt`. `unset` and `demo` allow only
 null/empty/whitespace values. Nonempty demo values are rejected, including both
 current/retired env credential inventory and the config credential. `configured` requires a
 nonblank value; nonblank JWTs must be safe HTTP header text. Demo status is
-metadata and is never a fake JWT. The pattern marker cannot hold a password.
+metadata and is never a fake JWT. The pattern marker cannot hold a password. The exact allowlist permits only those names plus concrete `DOTENV_[A-Z0-9_]+_PASS` family entries; arbitrary `BITBID_*` names, database URLs and binding aliases fail closed. Catalog schema validity alone does not validate runtime auth readiness or binding configuration.
 
 Checks verify required names and safe statuses after real SOPS decryption.
 `make secrets-report` prints only sorted names and statuses. It does not expose
@@ -115,7 +134,7 @@ an isolated home. It covers encrypt/decrypt comparison, missing entries,
 redacted reports/errors, unsafe demo values from both env and config sources,
 blank disabled values, malformed input, missing tooling/decrypt access, and
 non-overwrite behavior. It deletes its temporary directory and identities on
-exit. These fixture passes do not prove project-recipient approval or access.
+exit. Production-decision regressions assert the exact 18-setting inventory and 19 disabled entries, reject each missing required name and nonempty unset/demo value, preserve configured existing/retired and concrete DOTENV entries through real encrypted roundtrip, and reject unknown production-like names before any report output. Reports/errors redact configured new secrets as well as existing values. These fixture passes do not prove project-recipient approval or access.
 N2's isolated real-source Pinata probe/evidence is recorded in the Codinary run;
 no live provider call is made. The actual local demo catalog and gates now
 resolve N2's former recipient/decrypt blocker. N4 may consume the covered
