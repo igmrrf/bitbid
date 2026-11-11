@@ -1,18 +1,14 @@
-> Versioned draft checkpoint for [Specify remaining native lifecycle, configuration and shared-cache extraction cutovers](https://github.com/igmrrf/bitbid/issues/48).
-> Committed at the user's request to save all changes by ticket or feature; this does not resolve the open decision or turn pending choices into approvals.
-> The reviewed proposal below is preserved byte-for-byte. Its work-in-progress references describe the planning snapshot; alias removal has since completed at `b0a6b62`, and portable-core work remains unfinished.
+# Accepted remaining native extraction execution contract
 
-# PROPOSED — remaining native extraction execution contract
+Decision: [Specify remaining native lifecycle, configuration and shared-cache extraction cutovers](https://github.com/igmrrf/bitbid/issues/48). **Q11 and final shared understanding accepted on 2026-11-11.** R1–R14 are local cross-reference anchors for the fourteen actual normal continuation issues and exact scopes below. This adopts the execution contract and records those issues; implementation and release actions remain separate.
 
-Decision: [Specify remaining native lifecycle, configuration and shared-cache extraction cutovers](https://github.com/igmrrf/bitbid/issues/48). **Q11 accepted; pending final human confirmation of shared understanding.** Candidate labels below are local references; every candidate is **UNCREATED**, with no invented tracker identity. No implementation, tracker mutation or release action follows from this draft.
+Current checkpoint: native `a43a805`, webapp `170f293`, static web `803fce9`; all use `git@github.com:igmrrf/bitbid.git` with independent `main`, `webapp/main` and `web/main` remote branches, histories and locks. Only primary worktrees remain after verified cleanup. Alias removal47 is completed at `b0a6b62`; there is no active isolated47 integration to finish. Protocol50 remains independently owned frozen unfinished committed WIP at native `92c75ea` / webapp `12ff9d7`; preserve its original18-native/5-web source/ownership checkpoint and do not resume or overwrite it. Refresh source/claims before each implementation. Historical graph-first native inventory `/tmp/bitbid-decisions-native-inventory.md` is evidence of the original plan, not a substitute for a current implementation baseline. Completed Store29/list30/codecs32/read33 are retained, not repeated. Existing [IPFS31](https://github.com/igmrrf/bitbid/issues/31), [init34](https://github.com/igmrrf/bitbid/issues/34), [signing35](https://github.com/igmrrf/bitbid/issues/35), and [revoke36](https://github.com/igmrrf/bitbid/issues/36) remain actual open first-slice tickets with their identities/scopes; references below to completed31/35/36 mean their required future delivered interfaces, not a claim that their present open scopes are already implemented.
 
-Factual basis: `/tmp/bitbid-decisions-native-inventory.md`; graph-first current-source inspection at native272987a/web9a52f1b. Refresh source/claims before issue creation and before each implementation: the separate protocol-core50 session is CLOSED with unfinished source frozen at18 native+5 web files, and immediate alias removal47 owns isolated checkouts. Preserve that frozen source/ownership and its exact checkpoint; do not resume50 or overwrite either ticket. Completed Store29/list30/codecs32/read33 are retained, not repeated. Existing [IPFS31](https://github.com/igmrrf/bitbid/issues/31), [init34](https://github.com/igmrrf/bitbid/issues/34), [signing35](https://github.com/igmrrf/bitbid/issues/35), and [revoke36](https://github.com/igmrrf/bitbid/issues/36) keep their identities/scopes.
-
-## Proposed ruling
+## Accepted ruling
 
 Keep synchronous Store/Ipfs/Rpc/Clock/RandomSource and Host fields unchanged. Share pure transforms/policy and selected lifecycle ordering through narrow, operation-specific lazy callbacks; do not snapshot native config at startup or add a blanket lifecycle I/O port. Native configuration selection, credentials/persisted deployment schema, path identity, warning/error projection, output paths, terminal/process/staging/signal handling stay native. Byte IPFS remains honest bytes; CLI text keeps pinned charset/BOM/replacement semantics. Native compatibility writes retain historical secure-write/best-effort permission behavior; stronger FileStore is not weakened. Two explicitly named safety corrections require failing baseline evidence: env nonce length and legacy ABI pointer decoding. Atomic wallet/config pair initialization is a separate **unselected hardening proposal**, not part of init34 or these normal candidates.
 
-All future runtime acceptance is **canonical-only after47**: BITBID_HOME, BITBID_PINATA_JWT, ~/.bitbid and .bitbid.json. Removed legacy inputs get negative/inert fixtures, never supported fallback journeys. This supersedes older0.x alias assumptions in historical extraction documents; immutable protocol/contract/crypto labels remain unchanged. New work begins from the actual owner-reconciled baseline, preserving frozen unfinished50 and integrating47 only after its own completion. Quiescence/source ownership is the gate; completion of the50 feature or closing its issue is not required for unrelated nonoverlapping work.
+All future runtime acceptance is **canonical-only on completed47**: BITBID_HOME, BITBID_PINATA_JWT, ~/.bitbid and .bitbid.json. Removed legacy inputs get negative/inert fixtures, never supported fallback journeys. This supersedes older0.x alias assumptions in historical extraction documents; immutable protocol/contract/crypto labels remain unchanged. New work begins from the actual owner-reconciled baseline, preserving frozen unfinished50 and the delivered47 canonical-only behavior. Quiescence/source ownership is the gate; completion of the50 feature or closing its issue is not required for unrelated nonoverlapping work.
 
 ## Common implementation, interface and evidence contract
 
@@ -35,7 +31,24 @@ Recommended operation signatures, names illustrative within fixed semantics:
 - `view_payload_with(request, callbacks)->Result<IpfsPayload,LifecycleError<E>>` lazily invokes read_info(id), unlock(), policy-time(), fetch_text(cid), record_read(key,id), note_index(id,role), in that order; callbacks supply existing native selection/error boundaries. `share_secret_with` similarly receives explicit ShareRequest plus callbacks for time, unlock, upload_text, random_id_nonce, register and note, preserving its different source order below.
 - Callback aggregates are narrow operation inputs, not extra Host fields. Error display/source chains must not retain arbitrary secret-bearing diagnostics. Native wrappers preserve existing safe/concrete projections.
 
-## UNCREATED normal candidates
+## Fourteen bounded normal continuations
+
+| Local anchor | Actual normal continuation |
+| --- | --- |
+| R1 | [Extract pure environment parsing, rendering and child-variable policy](https://github.com/igmrrf/bitbid/issues/65) |
+| R2 | [Extract pure materialization and file-metadata transforms](https://github.com/igmrrf/bitbid/issues/66) |
+| R3 | [Extract env-file codecs and explicitly reject malformed nonce lengths](https://github.com/igmrrf/bitbid/issues/67) |
+| R4 | [Cut over native network configuration through compatibility storage](https://github.com/igmrrf/bitbid/issues/68) |
+| R5 | [Cut over native secret-index storage and share typed mutations](https://github.com/igmrrf/bitbid/issues/69) |
+| R6 | [Extract identity-guarded project configuration access into native adapters](https://github.com/igmrrf/bitbid/issues/70) |
+| R7 | [Extract shared text-cache policy while isolating raw IPFS bytes](https://github.com/igmrrf/bitbid/issues/71) |
+| R8 | [Share legacy registry-info decoding and explicitly reject malformed ABI pointers](https://github.com/igmrrf/bitbid/issues/72) |
+| R9 | [Cut over recordRead transaction callsite to the shared sender](https://github.com/igmrrf/bitbid/issues/73) |
+| R10 | [Cut over share registration transaction callsite and post-receipt index note](https://github.com/igmrrf/bitbid/issues/74) |
+| R11 | [Extract authorized view/read-recording lifecycle and env projection](https://github.com/igmrrf/bitbid/issues/75) |
+| R12 | [Extract share preparation, ID derivation and registration lifecycle](https://github.com/igmrrf/bitbid/issues/76) |
+| R13 | [Extract local-hide orchestration and retire only its legacy list composition](https://github.com/igmrrf/bitbid/issues/77) |
+| R14 | [Extract native materialization composition while preserving staging/process boundaries](https://github.com/igmrrf/bitbid/issues/78) |
 
 ### R1 — Extract pure environment parsing, rendering and child-variable policy
 
@@ -172,9 +185,9 @@ R4 --------------------------> R14
 31 -> R11
 ```
 
-For avoidance of diagram ambiguity, exact prerequisite sets: R1={} (shipped topology); R2={R1}; R3={32}; R4={} (existing byte helpers); R5={R4 support API if not already present}; R6={} (canonical47 baseline/source gate); R7={31}; R8={shipped registry core}; R9={36}; R10={36,R5}; R11={R1,R5,R8,R9,31}; R12={R10,31}; R13={R5,R8,36}; R14={R2,R11,R4 support API if not already present}. Read33 and sign35 are transitive/previously shipped; no extra duplicate edges. R4/R6/R7 are not prerequisites for all lifecycle work merely because they appear earlier. Frozen unfinished50/alias47/path moves create source-ownership/quiescence gates, not a requirement to complete50 or fake feature dependencies.
+For avoidance of diagram ambiguity, exact prerequisite sets: R1={} (shipped topology); R2={R1}; R3={32}; R4={} (existing byte helpers); R5={R4 support API if not already present}; R6={} (canonical47 baseline/source gate); R7={31}; R8={shipped registry core}; R9={36}; R10={36,R5}; R11={R1,R5,R8,R9,31}; R12={R10,31}; R13={R5,R8,36}; R14={R2,R11,R4 support API if not already present}. Read33 and sign35 are transitive/previously shipped; no extra duplicate edges. R4/R6/R7 are not prerequisites for all lifecycle work merely because they appear earlier. Frozen unfinished50/completed47/path moves create source-ownership/quiescence gates, not a requirement to complete50 or fake feature dependencies.
 
-Preferred sequencing: reconcile/preserve frozen unfinished50 and finish the separately active47 integration before overlapping work; run existing31/34/35/36 when genuinely ready; pure R1/R2/R3 and guarded project R6 are independent when their files are free; R4 extracts/reuses the existing byte helpers and R5 consumes that actual support; then small callsites R8/R9/R10 before view/share/hide, and R14 after its real inputs. Shared cache R7 can follow31 independently. No additional normal ticket for raw-byte cache without a real consumer. Field/function naming inside these contracts is implementation judgment, not a new user decision.
+Preferred sequencing: reconcile/preserve frozen unfinished50 and checkpoint all active owners before overlapping work; run existing31/34/35/36 when genuinely ready; pure R1/R2/R3 and guarded project R6 are independent when their files are free; R4 extracts/reuses the existing byte helpers and R5 consumes that actual support; then small callsites R8/R9/R10 before view/share/hide, and R14 after its real inputs. Shared cache R7 can follow31 independently. No additional normal ticket for raw-byte cache without a real consumer. Field/function naming inside these contracts is implementation judgment, not a new user decision.
 
 ## Explicitly retained separate proposals and limits
 
@@ -183,4 +196,4 @@ Preferred sequencing: reconcile/preserve frozen unfinished50 and finish the sepa
 - **Share crypto entropy injection:** not selected; production seal API/failure semantics stay as shipped. A future need requires an explicit fallible entropy seam decision rather than silently substituting the infallible RandomSource contract.
 - Hosting/team account/client-encrypted vault work, protocol50, publication and physical checkout/Compose work retain their own decisions/tickets. No new deployment variable, schema migration, global install change, Git push/tag/publication/deployment or live-provider mutation is authorized here.
 
-**Human dependency:** Q11 explicitly accepted the ruling and named correction scopes. Only final shared-understanding confirmation remains before contract recording/normal issue creation. There is no further factual or implementation-naming question required to write these tickets once that is settled. Atomic pair guarantees and raw-cache consumer work remain explicitly unselected/conditional, not blockers for these fourteen candidates.
+**Human decision recorded:** Q11 and the final shared-understanding answer explicitly accept this ruling, the fourteen bounded scopes and the two named safety corrections. There is no further factual or implementation-naming question required for their normal issues. Atomic pair guarantees and raw-cache consumer work remain explicitly unselected/conditional, not blockers for these fourteen continuations.
